@@ -10,15 +10,15 @@
     --mono:ui-monospace,"SF Mono",Menlo,Consolas,monospace;
     --bg:#0A0710;
     --bg-glow:
-      radial-gradient(ellipse 58% 75% at 12% 6%, rgba(78,60,150,.42), transparent 60%),
-      radial-gradient(ellipse 66% 85% at 93% 2%, rgba(176,48,60,.40), transparent 58%);
+      radial-gradient(ellipse 58% 75% at 12% 6%, rgba(66,74,168,.42), transparent 60%),
+      radial-gradient(ellipse 66% 85% at 93% 2%, rgba(188,52,66,.40), transparent 58%);
     --ink:#F4F1F6;
     --muted:#9C95AB;
     --faint:#615A72;
     --line:rgba(255,255,255,.10);
     --panel:rgba(255,255,255,.025);
-    --grad:linear-gradient(90deg,#F26FA6 0%,#A682D6 36%,#6E8DEF 66%,#4FD1C5 100%);
-    --red:#D14842;
+    --grad:linear-gradient(90deg,#EB5160 0%,#7989F3 50%,#5BC0BE 100%);
+    --red:#EB5160;
 
     --tscale:1;
     --type-hero:calc(148px * var(--tscale));
@@ -96,8 +96,8 @@
     background:var(--panel); border:1px solid var(--line); border-radius:14px;
     padding:24px 28px; white-space:pre; overflow:hidden; }
   .code .c{ color:var(--faint); }
-  .code .k{ color:#A682D6; }
-  .code .t{ color:#4FD1C5; }
+  .code .k{ color:#7989F3; }
+  .code .t{ color:#5BC0BE; }
 
   @media (prefers-reduced-motion:no-preference){
     [data-deck-active] .anim{ animation:rise .5s cubic-bezier(.2,.7,.2,1) both; }
@@ -121,7 +121,7 @@
   .rail.hidden{ display:none; }
   .rail .thumb{ position:relative; width:200px; height:112px; margin:0 auto 12px; cursor:pointer;
     border-radius:8px; overflow:hidden; border:1px solid var(--line); background:var(--bg); }
-  .rail .thumb.active{ border-color:#A682D6; box-shadow:0 0 0 2px rgba(166,130,214,.35); }
+  .rail .thumb.active{ border-color:#7989F3; box-shadow:0 0 0 2px rgba(121,137,243,.35); }
   .rail .thumb .scaler{ position:absolute; top:0; left:0; transform-origin:top left; pointer-events:none; }
   .rail .thumb .scaler .slide{ width:1920px; height:1080px; }
   .rail .thumb .num{ position:absolute; top:5px; left:7px; z-index:2;
@@ -160,7 +160,7 @@
       From prompt to<br><span class="grad">production.</span>
     </h1>
     <p class="body anim" data-d="4" style="max-width:54ch; margin-top:38px; font-size:var(--type-subtitle); color:var(--muted); font-weight:500; line-height:1.3;">
-      Building an agentic pipeline. Less talking, more building.
+      Building an agentic pipeline.
     </p>
     <div class="spacer"></div>
     <div class="row between anim" data-d="5">
@@ -172,7 +172,7 @@
   <!-- 2 AGENDA -->
   <section class="slide" data-label="The next two hours">
     <p class="label anim" data-d="1"><span class="tick"></span>The next two hours</p>
-    <h2 class="title anim" data-d="1" style="margin-top:30px; max-width:24ch;">25 minutes of me, <span class="grad">50 of you</span>.</h2>
+    <h2 class="title anim" data-d="1" style="margin-top:30px; max-width:24ch;">25 minutes of me, <span class="grad">65 of you</span>.</h2>
     <div class="spacer"></div>
     <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:28px;">
       <div class="card anim" data-d="2"><div class="rule"></div>
@@ -180,15 +180,15 @@
         <p class="small" style="margin-top:16px;">Eight steps. How we run AI engineering on client work.</p>
       </div>
       <div class="card anim" data-d="3"><div class="rule"></div>
-        <div class="subtitle" style="font-size:34px;">50 min</div>
-        <p class="small" style="margin-top:16px;">You build. Five agents, one repo, one deployed URL.</p>
+        <div class="subtitle" style="font-size:34px;">65 min</div>
+        <p class="small" style="margin-top:16px;">You build. Five agents, one repo, eight tickets open.</p>
       </div>
       <div class="card anim" data-d="4"><div class="rule"></div>
         <div class="subtitle" style="font-size:34px;">15 min</div>
-        <p class="small" style="margin-top:16px;">The sealed guest list, and the prize.</p>
+        <p class="small" style="margin-top:16px;">The wash-up. Your experience of working this way, and what you make of it.</p>
       </div>
     </div>
-    <p class="small anim" data-d="5" style="margin-top:38px; color:var(--faint);">Clock is on the wall. If I overrun, heckle me.</p>
+    <p class="small anim" data-d="5" style="margin-top:38px; color:var(--faint);">If I overrun, heckle me.</p>
   </section>
 
   <!-- 4 THREE WAYS IT GOES WRONG -->
@@ -225,11 +225,11 @@
       <svg viewBox="0 0 1680 330" width="1680" height="330" role="img" aria-label="Eight steps arranged as a loop, with step eight feeding back into step one">
         <defs>
           <linearGradient id="g3" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stop-color="#F26FA6"/><stop offset="36%" stop-color="#A682D6"/>
-            <stop offset="66%" stop-color="#6E8DEF"/><stop offset="100%" stop-color="#4FD1C5"/>
+            <stop offset="0%" stop-color="#EB5160"/><stop offset="50%" stop-color="#7989F3"/>
+            <stop offset="100%" stop-color="#5BC0BE"/>
           </linearGradient>
           <linearGradient id="g4" x1="1" y1="0" x2="0" y2="0">
-            <stop offset="0%" stop-color="#4FD1C5"/><stop offset="100%" stop-color="#F26FA6"/>
+            <stop offset="0%" stop-color="#5BC0BE"/><stop offset="100%" stop-color="#EB5160"/>
           </linearGradient>
         </defs>
         <g font-family="Helvetica Neue, Helvetica, Arial, sans-serif">
@@ -244,16 +244,29 @@
             <text x="1610" y="62">Audit it</text>
           </g>
 
-          <line x1="70" y1="130" x2="1610" y2="130" stroke="url(#g3)" stroke-width="2"/>
+          <line x1="114" y1="130" x2="235" y2="130" stroke="#DB5975" stroke-width="2.5"/>
+          <path d="M250 130 L235 123 L235 137 Z" fill="#DB5975"/>
+          <line x1="334" y1="130" x2="455" y2="130" stroke="#BA699F" stroke-width="2.5"/>
+          <path d="M470 130 L455 123 L455 137 Z" fill="#BA699F"/>
+          <line x1="554" y1="130" x2="675" y2="130" stroke="#9A79C9" stroke-width="2.5"/>
+          <path d="M690 130 L675 123 L675 137 Z" fill="#9A79C9"/>
+          <line x1="774" y1="130" x2="895" y2="130" stroke="#7989F3" stroke-width="2.5"/>
+          <path d="M910 130 L895 123 L895 137 Z" fill="#7989F3"/>
+          <line x1="994" y1="130" x2="1115" y2="130" stroke="#7099E4" stroke-width="2.5"/>
+          <path d="M1130 130 L1115 123 L1115 137 Z" fill="#7099E4"/>
+          <line x1="1214" y1="130" x2="1335" y2="130" stroke="#68A8D5" stroke-width="2.5"/>
+          <path d="M1350 130 L1335 123 L1335 137 Z" fill="#68A8D5"/>
+          <line x1="1434" y1="130" x2="1555" y2="130" stroke="#5FB8C6" stroke-width="2.5"/>
+          <path d="M1570 130 L1555 123 L1555 137 Z" fill="#5FB8C6"/>
 
-          <circle cx="70"   cy="130" r="34" fill="#0A0710" stroke="#F26FA6" stroke-width="2"/>
-          <circle cx="290"  cy="130" r="34" fill="#0A0710" stroke="#C878C2" stroke-width="2"/>
-          <circle cx="510"  cy="130" r="34" fill="#0A0710" stroke="#A682D6" stroke-width="2"/>
-          <circle cx="730"  cy="130" r="34" fill="#0A0710" stroke="#8A87E0" stroke-width="2"/>
-          <circle cx="950"  cy="130" r="34" fill="#0A0710" stroke="#6E8DEF" stroke-width="2"/>
-          <circle cx="1170" cy="130" r="34" fill="#0A0710" stroke="#5FAEDC" stroke-width="2"/>
-          <circle cx="1390" cy="130" r="34" fill="#0A0710" stroke="#55C0D0" stroke-width="2"/>
-          <circle cx="1610" cy="130" r="34" fill="#0A0710" stroke="#4FD1C5" stroke-width="2"/>
+          <circle cx="70"   cy="130" r="34" fill="#0A0710" stroke="#EB5160" stroke-width="2"/>
+          <circle cx="290"  cy="130" r="34" fill="#0A0710" stroke="#CA618A" stroke-width="2"/>
+          <circle cx="510"  cy="130" r="34" fill="#0A0710" stroke="#7989F3" stroke-width="2"/>
+          <circle cx="730"  cy="130" r="34" fill="#0A0710" stroke="#8981DE" stroke-width="2"/>
+          <circle cx="950"  cy="130" r="34" fill="#0A0710" stroke="#7989F3" stroke-width="2"/>
+          <circle cx="1170" cy="130" r="34" fill="#0A0710" stroke="#6CA1DC" stroke-width="2"/>
+          <circle cx="1390" cy="130" r="34" fill="#0A0710" stroke="#64B0CD" stroke-width="2"/>
+          <circle cx="1610" cy="130" r="34" fill="#0A0710" stroke="#5BC0BE" stroke-width="2"/>
 
           <g font-size="26" font-weight="800" fill="#F4F1F6" text-anchor="middle">
             <text x="70" y="140">01</text><text x="290" y="140">02</text>
@@ -263,17 +276,19 @@
           </g>
 
           <path d="M1610 164 L1610 250 L70 250 L70 170" fill="none" stroke="url(#g4)" stroke-width="2.5"/>
-          <path d="M70 164 L61 180 L79 180 Z" fill="#F26FA6"/>
+          <path d="M70 164 L61 180 L79 180 Z" fill="#EB5160"/>
           <text x="840" y="296" font-size="26" fill="#9C95AB" text-anchor="middle">the summary goes back on the ticket, and the next one is less thin</text>
         </g>
       </svg>
     </div>
     <div class="spacer"></div>
-    <div class="row between">
-      <p class="subtitle anim" data-d="3" style="font-weight:700; max-width:30ch; font-size:40px;">
-        A loop, <span class="grad">not a line</span>.
-      </p>
-      <p class="small anim" data-d="4" style="color:var(--faint); align-self:flex-end;">All eight are in the repo you are about to clone.</p>
+    <div class="row between" style="align-items:flex-end; gap:60px;">
+      <div class="anim" data-d="3">
+        <p class="subtitle" style="font-weight:700; max-width:38ch; font-size:48px; margin:0;">
+          Together, this is the <span class="grad">agentic harness</span>.
+        </p>
+      </div>
+      <p class="small anim" data-d="4" style="color:var(--faint); text-align:right; flex:none;">A loop, not a line. All eight are in the repo.</p>
     </div>
   </section>
 
@@ -422,8 +437,8 @@ name: test-author
       <svg viewBox="0 0 1180 480" width="1180" height="470" role="img" aria-label="One planning pass produces a frozen contract which fans out to three parallel lanes">
         <defs>
           <linearGradient id="g" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stop-color="#F26FA6"/><stop offset="36%" stop-color="#A682D6"/>
-            <stop offset="66%" stop-color="#6E8DEF"/><stop offset="100%" stop-color="#4FD1C5"/>
+            <stop offset="0%" stop-color="#EB5160"/><stop offset="50%" stop-color="#7989F3"/>
+            <stop offset="100%" stop-color="#5BC0BE"/>
           </linearGradient>
         </defs>
         <g font-family="Helvetica Neue, Helvetica, Arial, sans-serif">
@@ -477,13 +492,13 @@ name: test-author
       </div>
       <div style="padding:26px 28px; font-family:var(--mono); font-size:24px; line-height:2.15;">
         <div style="display:grid; grid-template-columns:24px 200px 230px 1fr;">
-          <span style="color:#4FD1C5;">●</span><span style="color:#F4F1F6;">rules</span><span style="color:#615A72;">feat/rules</span><span style="color:#9C95AB;">conflicts.rule.ts added, 4 tests green</span>
+          <span style="color:#5BC0BE;">●</span><span style="color:#F4F1F6;">rules</span><span style="color:#615A72;">feat/rules</span><span style="color:#9C95AB;">conflicts.rule.ts added, 4 tests green</span>
         </div>
         <div style="display:grid; grid-template-columns:24px 200px 230px 1fr;">
-          <span style="color:#F26FA6;">●</span><span style="color:#F4F1F6;">solver</span><span style="color:#615A72;">feat/solver</span><span style="color:#9C95AB;">swap-repair loop, 41 iterations, running</span>
+          <span style="color:#EB5160;">●</span><span style="color:#F4F1F6;">solver</span><span style="color:#615A72;">feat/solver</span><span style="color:#9C95AB;">swap-repair loop, 41 iterations, running</span>
         </div>
         <div style="display:grid; grid-template-columns:24px 200px 230px 1fr;">
-          <span style="color:#6E8DEF;">●</span><span style="color:#F4F1F6;">ui</span><span style="color:#615A72;">feat/ui</span><span style="color:#9C95AB;">violations panel wired, 3 files changed</span>
+          <span style="color:#7989F3;">●</span><span style="color:#F4F1F6;">ui</span><span style="color:#615A72;">feat/ui</span><span style="color:#9C95AB;">violations panel wired, 3 files changed</span>
         </div>
       </div>
       <div style="padding:16px 28px; border-top:1px solid var(--line); font-family:var(--mono); font-size:21px; color:var(--faint);">
@@ -623,7 +638,7 @@ name: test-author
       <svg viewBox="0 0 1360 200" width="1290" height="190" role="img" aria-label="Ticket to branch to pull request to CI to merge to deploy, with the build summary posted back to the ticket">
         <defs>
           <linearGradient id="g2" x1="0" y1="0" x2="1" y2="0">
-            <stop offset="0%" stop-color="#F26FA6"/><stop offset="100%" stop-color="#4FD1C5"/>
+            <stop offset="0%" stop-color="#EB5160"/><stop offset="100%" stop-color="#5BC0BE"/>
           </linearGradient>
         </defs>
         <g font-family="Helvetica Neue, Helvetica, Arial, sans-serif" font-size="25">
@@ -645,7 +660,7 @@ name: test-author
           <rect x="1140" y="16" width="180" height="60" rx="30" fill="none" stroke="#615A72"/>
           <text x="1204" y="54" fill="#F4F1F6">deploy</text>
           <path d="M1230 76 L1230 142 L90 142 L90 84" fill="none" stroke="url(#g2)" stroke-width="2"/>
-          <path d="M90 78 L83 92 L97 92 Z" fill="#F26FA6"/>
+          <path d="M90 78 L83 92 L97 92 Z" fill="#EB5160"/>
           <text x="556" y="178" fill="#9C95AB" font-size="24">build summary posted back</text>
         </g>
       </svg>
@@ -741,11 +756,10 @@ name: test-author
     </div>
     <h2 class="title anim" data-d="1" style="margin-top:14px; max-width:28ch;">What she left you, <span class="grad">in numbers</span>.</h2>
     <div class="spacer"></div>
-    <div class="stats anim" data-d="2" style="grid-template-columns:repeat(4,1fr);">
-      <div class="stat"><div class="num grad sm">200</div><div class="lab">guests</div></div>
-      <div class="stat"><div class="num grad sm">27</div><div class="lab">tables</div></div>
-      <div class="stat"><div class="num grad sm">216</div><div class="lab">seats, 16 spare</div></div>
-      <div class="stat"><div class="num grad sm">Fri</div><div class="lab">venue wants the plan</div></div>
+    <div class="stats anim" data-d="2" style="grid-template-columns:repeat(3,1fr);">
+      <div class="stat"><div class="num grad">200</div><div class="lab">guests</div></div>
+      <div class="stat"><div class="num grad">27</div><div class="lab">tables</div></div>
+      <div class="stat"><div class="num grad">216</div><div class="lab">seats, 16 spare</div></div>
     </div>
     <p class="small anim" data-d="3" style="margin-top:30px; color:var(--faint);">Celebrity Scale. Ninety-six households, nine feuds, twenty-one access needs, eleven friendship groups.</p>
     <div class="spacer"></div>
@@ -775,34 +789,45 @@ name: test-author
     </div>
     <h2 class="title anim" data-d="1" style="margin-top:14px;">It runs. <span class="grad">Sort of.</span></h2>
     <div class="spacer"></div>
-    <div style="display:grid; grid-template-columns:1fr 1.4fr; gap:30px; align-items:stretch;">
-      <div class="card anim" data-d="2" style="padding:30px; border-style:dashed;">
-        <div class="subtitle" style="font-size:27px; color:var(--muted);">Done</div>
-        <div class="row" style="gap:9px; flex-wrap:wrap; margin-top:20px;">
-          <span class="pill muted">Set up the room</span><span class="pill muted">Scenarios</span>
-          <span class="pill muted">Guest list</span><span class="pill muted">Floorplan</span>
-          <span class="pill muted">Click to place</span><span class="pill muted">Auto-allocate</span>
-          <span class="pill muted">Three rules</span><span class="pill muted">Scoring</span>
-        </div>
-        <p class="small" style="margin-top:auto; padding-top:22px; color:var(--faint);">Enough to produce a plan. Not enough to produce a good one.</p>
+
+    <p class="subtitle anim" data-d="2" style="font-size:40px; font-weight:700; max-width:44ch;">
+      Eight tickets open. <span class="grad">Pick two or three.</span>
+    </p>
+    <p class="small anim" data-d="2" style="margin-top:16px; max-width:70ch;">
+      It does not matter which, or in what order. Nobody is expected to finish them all and there
+      is no right answer about where to start.
+    </p>
+
+    <div class="spacer"></div>
+    <div style="display:grid; grid-template-columns:1.5fr 1fr 1fr; gap:26px;">
+
+      <div class="card anim" data-d="3" style="padding:30px;"><div class="rule"></div>
+        <div class="subtitle" style="font-size:26px;">Rules</div>
+        <p class="small" style="margin-top:6px; color:var(--faint);">the domain, six of them</p>
+        <p class="small" style="margin-top:16px;">
+          <strong>TT-17</strong> conflicting guests apart<br>
+          <strong>TT-18</strong> tables needing a kitchen brief<br>
+          <strong>TT-19</strong> households together<br>
+          <strong>TT-20</strong> children not all on one table<br>
+          <strong>TT-21</strong> spread the tag groups<br>
+          <strong>TT-22</strong> someone sociable per table
+        </p>
       </div>
-      <div class="card anim" data-d="3" style="padding:30px; border:1px solid transparent; background:linear-gradient(var(--bg),var(--bg)) padding-box, var(--grad) border-box;">
-        <div class="subtitle" style="font-size:27px;"><span class="grad">Six rules that move the score</span></div>
-        <p class="small" style="margin-top:16px; color:var(--ink);"><strong>TT-17</strong>&nbsp;&nbsp;Keep conflicting guests apart</p>
-        <p class="small" style="margin-top:7px; color:var(--ink);"><strong>TT-18</strong>&nbsp;&nbsp;Flag tables that need a kitchen brief</p>
-        <p class="small" style="margin-top:7px; color:var(--ink);"><strong>TT-19</strong>&nbsp;&nbsp;Keep households together</p>
-        <p class="small" style="margin-top:7px; color:var(--ink);"><strong>TT-20</strong>&nbsp;&nbsp;Do not seat all the children together</p>
-        <p class="small" style="margin-top:7px; color:var(--ink);"><strong>TT-21</strong>&nbsp;&nbsp;Spread the tag groups</p>
-        <p class="small" style="margin-top:7px; color:var(--ink);"><strong>TT-22</strong>&nbsp;&nbsp;Give every table someone sociable</p>
+
+      <div class="card anim" data-d="4" style="padding:30px;"><div class="rule"></div>
+        <div class="subtitle" style="font-size:26px;">Interaction</div>
+        <p class="small" style="margin-top:6px; color:var(--faint);">the front end</p>
+        <p class="small" style="margin-top:16px;"><strong>TT-23</strong> fix the plan by dragging</p>
       </div>
+
+      <div class="card anim" data-d="5" style="padding:30px;"><div class="rule"></div>
+        <div class="subtitle" style="font-size:26px;">Output</div>
+        <p class="small" style="margin-top:6px; color:var(--faint);">what Bea is waiting for</p>
+        <p class="small" style="margin-top:16px;"><strong>TT-31</strong> print a plan the venue can use</p>
+      </div>
+
     </div>
-    <div class="anim" data-d="4" style="margin-top:26px; border-left:3px solid var(--red); padding:18px 26px; background:var(--panel);">
-      <div class="row between" style="align-items:baseline;">
-        <span class="subtitle" style="font-size:26px;">Or finish the job. <strong>TT-31</strong>, print a plan the venue can use.</span>
-        <span class="small" style="color:var(--faint);">nobody has written it</span>
-      </div>
-    </div>
-    <p class="small anim" data-d="5" style="margin-top:22px; color:var(--faint);">Two of the seven are a title and nothing else. You write the spec, and step 02 is how.</p>
+    <p class="small anim" data-d="6" style="margin-top:26px; color:var(--faint);">Two of the eight are a title and nothing else. You write the spec, and step 02 is how.</p>
   </section>
 
   <!-- HOW YOU WORK -->
@@ -820,13 +845,13 @@ name: test-author
         <p class="small" style="margin-top:16px;">/implement-issue reads the ticket and picks the right one. You do not choose the agent.</p>
       </div>
       <div class="card anim" data-d="4" style="padding:32px;"><div class="rule"></div>
-        <div class="subtitle" style="font-size:27px;">Adding a rule touches one file</div>
-        <p class="small" style="margin-top:16px;">No registry to edit, so three agents can add three rules without meeting.</p>
+        <div class="subtitle" style="font-size:27px;">A rule is one new file</div>
+        <p class="small" style="margin-top:16px;">No registry to edit, so three agents can add three rules without meeting. <strong style="color:var(--ink);">TT-23</strong> and <strong style="color:var(--ink);">TT-31</strong> are the two that touch the front end, so they are a different shape of job.</p>
       </div>
     </div>
     <div class="row anim" data-d="5" style="gap:14px; flex-wrap:wrap; margin-top:30px;">
-      <span class="pill grad-b">Start with TT-17</span>
-      <span class="pill">Seven to choose from</span>
+      <span class="pill grad-b">TT-23 and TT-31 if you would rather not write rules</span>
+      <span class="pill">Eight to choose from</span>
       <span class="pill">Jira is already wired up</span>
     </div>
     <div class="spacer"></div>
@@ -836,33 +861,36 @@ name: test-author
     </p>
   </section>
 
-  <!-- HOW YOU WIN -->
-  <section class="slide" data-label="How you win">
-    <p class="label anim" data-d="1"><span class="tick"></span>How you win</p>
-    <h2 class="title anim" data-d="1" style="margin-top:20px;">Two ways, <span class="grad">and they pull against each other</span>.</h2>
+  <!-- THE WASH UP -->
+  <section class="slide" data-label="The wash-up">
+    <p class="label anim" data-d="1"><span class="tick"></span>The last fifteen minutes</p>
+    <h2 class="title anim" data-d="1" style="margin-top:20px; max-width:30ch;">Then we talk about <span class="grad">how that went</span>.</h2>
+    <p class="small anim" data-d="1" style="margin-top:22px; max-width:74ch;">
+      No leaderboard, no prize, nobody marking your work. The useful part of today is what you
+      noticed while you were doing it, and you will have noticed different things to the person
+      next to you.
+    </p>
     <div class="spacer"></div>
-    <div style="display:grid; grid-template-columns:1fr 1fr; gap:30px; align-items:stretch;">
-      <div class="card anim" data-d="2" style="padding:32px; border:1px solid transparent; background:linear-gradient(var(--bg),var(--bg)) padding-box, var(--grad) border-box;">
-        <div class="subtitle" style="font-size:29px;"><span class="grad">Best plan</span></div>
-        <p class="small" style="margin-top:8px; color:var(--faint);">a guest list nobody has seen, at 1:35</p>
-        <p class="small" style="margin-top:18px; color:var(--ink);">Any hard violation and you do not score. The plan cannot go to the venue.</p>
-        <p class="small" style="margin-top:10px; color:var(--ink);">Then ranked by what is left. Every soft violation costs a point.</p>
+    <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:26px 34px;">
+      <div class="card anim" data-d="2" style="padding:30px;"><div class="rule"></div>
+        <div class="subtitle" style="font-size:28px;">What worked</div>
+        <p class="small" style="margin-top:14px;">Where did it genuinely save you time? Which step earned its place?</p>
       </div>
-      <div class="card anim" data-d="3" style="padding:32px; border:1px solid transparent; background:linear-gradient(var(--bg),var(--bg)) padding-box, var(--grad) border-box;">
-        <div class="subtitle" style="font-size:29px;"><span class="grad">Finished the job</span></div>
-        <p class="small" style="margin-top:8px; color:var(--faint);">TT-31</p>
-        <p class="small" style="margin-top:18px; color:var(--ink);">The plan actually reaches the venue, in something they can use.</p>
-        <p class="small" style="margin-top:10px; color:var(--ink);">Worth nothing on the leaderboard. It is the only ticket that answers the brief.</p>
+      <div class="card anim" data-d="3" style="padding:30px;"><div class="rule"></div>
+        <div class="subtitle" style="font-size:28px;">What did not</div>
+        <p class="small" style="margin-top:14px;">Where did the process get in the way, or cost more than it gave back?</p>
+      </div>
+      <div class="card anim" data-d="4" style="padding:30px;"><div class="rule"></div>
+        <div class="subtitle" style="font-size:28px;">What you caught</div>
+        <p class="small" style="margin-top:14px;">What did the agent get wrong, and what made you look in the right place?</p>
+      </div>
+      <div class="card anim" data-d="5" style="padding:30px; border:1px solid transparent; background:linear-gradient(var(--bg),var(--bg)) padding-box, var(--grad) border-box;">
+        <div class="subtitle" style="font-size:28px;"><span class="grad">Your world</span></div>
+        <p class="small" style="margin-top:14px; color:var(--ink);">To what extent could you apply this where you work? What would have to change first?</p>
       </div>
     </div>
-    <p class="small anim" data-d="4" style="margin-top:28px; color:var(--faint);">And whichever you pick:</p>
-    <div class="row anim" data-d="4" style="gap:13px; flex-wrap:wrap; margin-top:13px;">
-      <span class="pill">Tests that mean something</span>
-      <span class="pill">Tickets linked to PRs, CI green, summary back on the ticket</span>
-      <span class="pill">Ninety seconds on one thing your agent got wrong</span>
-    </div>
     <div class="spacer"></div>
-    <p class="small anim" data-d="5" style="color:var(--faint);">Anything that only works on the guest list in front of you is not a solution, it is a lookup table.</p>
+    <p class="small anim" data-d="6" style="color:var(--faint);">Keep a note as you go. In fifty minutes you will not remember the thing that annoyed you at half past twelve.</p>
   </section>
 
   <!-- 20 GO -->
