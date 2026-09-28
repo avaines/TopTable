@@ -126,10 +126,15 @@ rather than raising the model.
 
 ### "Build TT-7" means the pipeline
 
-**A build instruction naming an issue key starts with `planner`, always.** "Build TT-7", "do TT-12",
-"pick up TT-9" — the key is the whole instruction. It means `planner`, then the developer the plan
-names, then `tester`, then `reviewer` — except an infra ticket, which has nothing a test can cover
-and goes `infra-developer` then `infra-reviewer` instead.
+**A build instruction naming an issue key starts with `planner`, unless the plan is already
+approved.** "Build TT-7", "do TT-12", "pick up TT-9" — the key is the whole instruction. It means
+`planner`, then the developer the plan names, then `tester`, then `reviewer` — except an infra
+ticket, which has nothing a test can cover and goes `infra-developer` then `infra-reviewer` instead.
+
+**An approved plan is a page titled `Approved plan: TT-7` in the ticket's `remoteLinks`.** A person
+has read and approved it, so save its body to `.claude/plans/TT-7.md` and start with the developer
+it names. It is still one agent's reading of the source, not a requirement: where it disagrees with
+the ticket or its other pages, they win.
 
 No one should have to add "start with the planner agent". If that sentence is load-bearing, this
 rule is not doing its job.
