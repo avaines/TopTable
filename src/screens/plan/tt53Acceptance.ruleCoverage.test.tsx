@@ -80,8 +80,8 @@ beforeEach(() => {
 
 describe('TT-53 — the rule-coverage line, driven end to end through the real PlanScreen', () => {
   it(
-    'a scored, publishable plan shows "4 of 10 rules built" beside the Fit figure; the ' +
-      'violations panel still reads exactly "4 rules registered", carrying no denominator of ' +
+    'a scored, publishable plan shows "5 of 10 rules built" beside the Fit figure; the ' +
+      'violations panel still reads exactly "5 rules registered", carrying no denominator of ' +
       'its own; and the publishability line still accompanies the figure (pins today\'s ' +
       'registered count of 4 — expected to need a one-line bump, not a fix, as each of TT-17 to ' +
       'TT-22 raises it toward the declared 10)',

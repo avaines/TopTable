@@ -10,6 +10,7 @@ import { PROTOCOL_ROLES } from './types'
 import type { Guest, Pin, RoomConfig } from './types'
 import { totalSeats } from './capacity'
 import type { ScenarioId } from './scenarios'
+import { registeredSeatGuard } from './rules/registry'
 
 /**
  * TT-13's solver. This file proves the contract `allocate` documents on itself — its default
@@ -38,6 +39,97 @@ function makeGuest(id: string, overrides: Partial<Guest> = {}): Guest {
 }
 
 describe('allocate — the shape of a plan', () => {
+  it('backtracks independent guests around a hard seat guard', () => {
+    const room: RoomConfig = { roundTables: 2, seatsEach: 2, topTableSeats: 0 }
+    const guests = [
+      makeGuest('a'),
+      makeGuest('b'),
+      makeGuest('c'),
+      makeGuest('d'),
+    ]
+    guests[2]!.conflictsWith = ['d']
+    guests[3]!.conflictsWith = ['c']
+    const guard: SeatGuard = ({ plan, tableId, guest }) => {
+      const table = plan.tables.find((candidate) => candidate.id === tableId)
+      return !table?.seats.some((seat) => seat?.guest.conflictsWith.includes(guest.id) || guest.conflictsWith.includes(seat?.guest.id ?? ''))
+    }
+    const plan = allocate(room, guests, [], { allowSeat: guard })
+    expect(plan.unseated).toEqual([])
+    expect(plan.tables.flatMap((table) => table.seats.filter(Boolean)).some((seat) => seat?.guest.id === 'c')).toBe(true)
+    expect(plan.tables.every((table) => {
+      const seated = table.seats.filter(Boolean).map((seat) => seat!.guest.id)
+      return !(seated.includes('c') && seated.includes('d'))
+    })).toBe(true)
+  })
+
+  it('does not backtrack round guests because fixed top-table occupants conflict', () => {
+    const room: RoomConfig = { roundTables: 3, seatsEach: 8, topTableSeats: 8 }
+    const protocol = otherProtocolGuests().map((guest) => ({ ...guest }))
+    protocol[0]!.conflictsWith = [protocol[1]!.id]
+    protocol[1]!.conflictsWith = [protocol[0]!.id]
+    const guests = [...protocol, ...Array.from({ length: 20 }, (_, index) => makeGuest(`round-${index}`))]
+    const registeredGuard = registeredSeatGuard()
+    let guardCalls = 0
+    const guard: SeatGuard = (candidate) => {
+      guardCalls += 1
+      if (guardCalls > 5000) throw new Error('unexpected search explosion')
+      return registeredGuard(candidate)
+    }
+
+    const plan = allocate(room, guests, [], { allowSeat: guard })
+
+    expect(plan.unseated).toEqual([])
+    expect(guardCalls).toBeLessThan(5000)
+    expect(plan.tables.filter((table) => table.kind === 'round').flatMap((table) => table.seats).filter(Boolean)).toHaveLength(20)
+  })
+
+  it('forward-checks a late guest that conflicts with pins on every table', () => {
+    const room: RoomConfig = { roundTables: 2, seatsEach: 10, topTableSeats: 0 }
+    const guests = [
+      makeGuest('p1', { conflictsWith: ['z'] }),
+      makeGuest('p2', { conflictsWith: ['z'] }),
+      ...Array.from({ length: 17 }, (_, index) => makeGuest(`ordinary-${index}`)),
+      makeGuest('z', { conflictsWith: ['p1', 'p2'] }),
+    ]
+    const pins: Pin[] = [
+      { guestId: 'p1', tableId: 'round-1' },
+      { guestId: 'p2', tableId: 'round-2' },
+    ]
+    let guardCalls = 0
+    const guard: SeatGuard = (candidate) => {
+      guardCalls += 1
+      if (guardCalls > 5000) throw new Error('unexpected search explosion')
+      const table = candidate.plan.tables.find((item) => item.id === candidate.tableId)
+      return !table?.seats.some((seat) => seat?.guest.conflictsWith.includes(candidate.guest.id) || candidate.guest.conflictsWith.includes(seat?.guest.id ?? ''))
+    }
+
+    const plan = allocate(room, guests, pins, { allowSeat: guard })
+
+    expect(guardCalls).toBeLessThan(5000)
+    expect(plan.unseated.map((guest) => guest.id)).toEqual(['z'])
+  })
+
+  it('backtracks an optional partner around coupled pinned conflicts', () => {
+    const room: RoomConfig = { roundTables: 1, seatsEach: 3, topTableSeats: 0 }
+    const guests = [
+      makeGuest('a', { partnerOf: 'b' }),
+      makeGuest('b', { partnerOf: 'a', conflictsWith: ['c'] }),
+      makeGuest('c', { partnerOf: 'd', conflictsWith: ['b'] }),
+      makeGuest('d', { partnerOf: 'c' }),
+    ]
+    const guard: SeatGuard = ({ plan, tableId, guest }) => {
+      const table = plan.tables.find((candidate) => candidate.id === tableId)
+      return !table?.seats.some((seat) => seat?.guest.conflictsWith.includes(guest.id) || guest.conflictsWith.includes(seat?.guest.id ?? ''))
+    }
+
+    const plan = allocate(room, guests, [
+      { guestId: 'a', tableId: 'round-1' },
+      { guestId: 'c', tableId: 'round-1' },
+    ], { allowSeat: guard })
+
+    expect(plan.tables[0]?.seats.filter(Boolean).map((seat) => seat!.guest.id)).toEqual(['a', 'c', 'd'])
+    expect(plan.unseated.map((guest) => guest.id)).toEqual(['b'])
+  })
   it('produces one table per slot tablesInRoom would generate for the same room, in the same order', () => {
     const room: RoomConfig = { roundTables: 2, seatsEach: 4, topTableSeats: 4 }
     const guests = [makeGuest('g-1'), makeGuest('g-2')]
@@ -556,7 +648,7 @@ describe('allocate — the fill consults a caller-supplied guard', () => {
     expect(plan.unseated.map((guest) => guest.id)).toEqual(['ordinary-1', 'ordinary-2'])
   })
 
-  it('a recording guard sees the candidate table fill up as the pass proceeds, and every candidate carries a 0-based seat index', () => {
+    it('a recording guard receives valid seat indices during search and backtracking', () => {
     const room: RoomConfig = { roundTables: 1, seatsEach: 4, topTableSeats: 0 }
     const guests = [makeGuest('g-1'), makeGuest('g-2'), makeGuest('g-3')]
     const seatedIds = new Set(guests.map((guest) => guest.id))
@@ -580,9 +672,8 @@ describe('allocate — the fill consults a caller-supplied guard', () => {
       const table = candidate.plan.tables.find((t) => t.id === 'round-1')
       return table?.seats.filter((seat) => seat !== null).length ?? 0
     })
-    const sorted = [...occupiedCounts].sort((a, b) => a - b)
-    expect(occupiedCounts).toEqual(sorted)
-    expect(occupiedCounts.at(-1)).toBe(3)
+    expect(occupiedCounts.every((count) => count <= 3)).toBe(true)
+    expect(Math.max(...occupiedCounts)).toBe(3)
     expect(plan.unseated).toEqual([])
   })
 })
