@@ -4,7 +4,7 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { allocate } from './allocate'
 import type { SeatCandidate, SeatGuard } from './allocate'
-import { seatOf, tablesInRoom, topTableRoleOrder, topTableSeatPlacement } from './seating'
+import { adjacentSeats, seatOf, tablesInRoom, topTableRoleOrder, topTableSeatPlacement } from './seating'
 import type { SeatedTable } from './seating'
 import { PROTOCOL_ROLES } from './types'
 import type { Guest, Pin, RoomConfig } from './types'
@@ -39,6 +39,15 @@ function makeGuest(id: string, overrides: Partial<Guest> = {}): Guest {
 }
 
 describe('allocate — the shape of a plan', () => {
+  it('tries a later chair when the guard rejects the canonical chair', () => {
+    const guest = makeGuest('late-chair')
+    const plan = allocate({ roundTables: 1, seatsEach: 2, topTableSeats: 0 }, [guest], [], {
+      allowSeat: ({ seatIndex }) => seatIndex === 1,
+    })
+
+    expect(seatOf(plan, guest.id)?.seatIndex).toBe(1)
+  })
+
   it('backtracks independent guests around a hard seat guard', () => {
     const room: RoomConfig = { roundTables: 2, seatsEach: 2, topTableSeats: 0 }
     const guests = [
@@ -181,6 +190,57 @@ describe('TT-23 exact seats in allocation', () => {
     expect(seatOf(plan, 'a')?.seatIndex).toBe(3)
     expect(seatOf(plan, 'b')?.seatIndex).toBe(0)
     expect(plan.unseated).toEqual([])
+  })
+
+  it('keeps omitted protocol couples together across exact-seat holes on one round table', () => {
+    const chief = makeGuest('chief', { role: CHIEF_BRIDESMAID, partnerOf: 'chief-partner' })
+    const chiefPartner = makeGuest('chief-partner', { partnerOf: 'chief' })
+    const best = makeGuest('best', { role: BEST_MAN, partnerOf: 'best-partner' })
+    const bestPartner = makeGuest('best-partner', { partnerOf: 'best' })
+    const guests = [
+      chief, ...otherProtocolGuests().filter((guest) => guest.role !== CHIEF_BRIDESMAID), best, chiefPartner, bestPartner,
+      makeGuest('fixed-1'), makeGuest('fixed-2'),
+    ]
+    const plan = allocate({ roundTables: 1, seatsEach: 6, topTableSeats: 6 }, guests, [
+      { guestId: 'fixed-1', tableId: 'round-1', seatIndex: 0 },
+      { guestId: 'fixed-2', tableId: 'round-1', seatIndex: 3 },
+    ], { allowSeat: registeredSeatGuard() })
+
+    expect(plan.unseated).toEqual([])
+    const round = plan.tables.find((table) => table.id === 'round-1')
+    expect(round?.seats.filter(Boolean)).toHaveLength(6)
+    const chiefSeat = seatOf(plan, 'chief-partner')
+    const bestSeat = seatOf(plan, 'best-partner')
+    expect(chiefSeat?.table.id).toBe('round-1')
+    expect(bestSeat?.table.id).toBe('round-1')
+    expect(chiefSeat?.seatIndex !== null && bestSeat?.seatIndex !== null).toBe(true)
+    if (chiefSeat?.seatIndex !== null && chiefSeat?.seatIndex !== undefined && bestSeat?.seatIndex !== null && bestSeat?.seatIndex !== undefined) {
+      expect(adjacentSeats(chiefSeat.table, chiefSeat.seatIndex)).toContain(seatOf(plan, 'chief')?.seatIndex)
+      expect(adjacentSeats(bestSeat.table, bestSeat.seatIndex)).toContain(seatOf(plan, 'best')?.seatIndex)
+    }
+  })
+
+  it('reconsiders a merged protocol block when a later guest needs the only remaining chair', () => {
+    const chief = makeGuest('block-chief', { role: CHIEF_BRIDESMAID, partnerOf: 'block-chief-partner' })
+    const chiefPartner = makeGuest('block-chief-partner', { partnerOf: 'block-chief' })
+    const best = makeGuest('block-best', { role: BEST_MAN })
+    const ordinary = makeGuest('block-ordinary')
+    const guests = [chief, ...otherProtocolGuests().filter((guest) => guest.role !== CHIEF_BRIDESMAID), best, chiefPartner, ordinary]
+    const plan = allocate({ roundTables: 1, seatsEach: 4, topTableSeats: 6 }, guests, [
+      { guestId: chiefPartner.id, tableId: 'round-1' },
+    ], {
+      allowSeat: ({ guest, seatIndex }) => guest.id !== ordinary.id || seatIndex === 1,
+    })
+
+    expect(plan.unseated).toEqual([])
+    expect(seatOf(plan, ordinary.id)?.seatIndex).toBe(1)
+    const round = plan.tables.find((table) => table.id === 'round-1')!
+    const partnerLocation = seatOf(plan, chiefPartner.id)
+    const chiefLocation = seatOf(plan, chief.id)
+    if (!partnerLocation || partnerLocation.seatIndex === null || !chiefLocation || chiefLocation.seatIndex === null) throw new Error('expected chief pair to be seated')
+    expect(partnerLocation.table.id).toBe('round-1')
+    expect(round.seats[partnerLocation.seatIndex]?.pinned).toBe(true)
+    expect(adjacentSeats(round, partnerLocation.seatIndex)).toContain(chiefLocation.seatIndex)
   })
 
   it('does not require a partner adjacent when one partner is fixed at the top table', () => {

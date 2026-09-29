@@ -48,7 +48,7 @@ setup screen, TT-3. Nothing that can be recomputed from the three fields above b
 ## The write surface
 
 `setEventName`, `setRoom`, `setGuests`, `importScenario`, `reset`, `addGuest`, `updateGuest`,
-`removeGuest`, `pinGuest`, `unpinGuest` and `clearPins`. `setEventName`, `setRoom` and `setGuests`
+`removeGuest`, `pinGuest`, `moveGuest`, `restorePins`, `unpinGuest` and `clearPins`. `setEventName`, `setRoom` and `setGuests`
 are what TT-2 needs to stand the project up and prove persistence.
 
 **Guest add, edit and remove are here, and reciprocity is not improvised in this file.**

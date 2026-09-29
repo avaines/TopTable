@@ -78,12 +78,19 @@ export function useSeatMove(options: Options) {
     if (!stored) return
     onPickUp()
     const to = addressFrom(event.target, event)
-    if (!to) { setPreview({ ...buildMovePreview(plan, guests, stored.move, report, room), to: null, status: 'nowhere' }); return }
+    if (!to) {
+      movedRef.current = true
+      setHolding({ ...stored })
+      setPreview({ ...buildMovePreview(plan, guests, stored.move, report, room), to: null, status: 'nowhere' }); return
+    }
     const targetEl = chairElement(event.target, event) ?? event.target as Element
     const targetGuest = targetEl.getAttribute('data-guest-id')
     const move: SeatMove = { ...stored.move, to, displacedGuestId: targetGuest ?? undefined }
-    if (to.tableId === 'top') { setPreview({ ...buildMovePreview(plan, guests, move, report, room), status: 'refused' }); return }
-    if (to.tableId === stored.move.from.tableId && to.seatIndex === stored.move.from.seatIndex) { setPreview({ ...buildMovePreview(plan, guests, stored.move, report, room), to, status: 'home' }); return }
+    if (to.tableId === stored.move.from.tableId && to.seatIndex === stored.move.from.seatIndex) {
+      if (!movedRef.current) { setPreview(null); return }
+      setHolding({ ...stored }); setPreview({ ...buildMovePreview(plan, guests, stored.move, report, room), to, status: 'home' }); return
+    }
+    if (to.tableId === 'top') { movedRef.current = true; stored.move = move; setHolding({ ...stored }); setPreview({ ...buildMovePreview(plan, guests, move, report, room), status: 'refused' }); return }
     movedRef.current = true
     stored.move = move
     setHolding({ ...stored })
@@ -97,7 +104,8 @@ export function useSeatMove(options: Options) {
     const to = addressFrom(event.target, event)
     const move = stored.move
     if (!to || to.tableId === 'top' || (to.tableId === move.from.tableId && to.seatIndex === move.from.seatIndex)) {
-      setHolding(null); setPreview(null); originElement.current?.focus(); announce('Move put back.'); return
+      const wasActive = movedRef.current
+      setHolding(null); setPreview(null); originElement.current?.focus(); if (wasActive) { suppressClickRef.current = true; announce('Move put back.') } return
     }
     move.to = to
     const targetGuest = (chairElement(event.target, event) ?? event.target as Element).getAttribute('data-guest-id')

@@ -8,7 +8,7 @@ import { tablesInRoom, type TableSlot } from '../../domain/seating'
 import type { Guest, Pin, RoomConfig } from '../../domain/types'
 import { allocate } from '../../domain/allocate'
 import { seatPins } from '../../domain/seating'
-import { evaluateRegistered } from '../../domain/rules/registry'
+import { evaluateRegisteredWithKitchenBriefs } from '../../domain/rules/registry'
 
 export type ViolationChanges = { breaks: readonly Violation[]; clears: readonly Violation[] }
 
@@ -65,7 +65,7 @@ export function buildMovePreview(plan: SeatingPlan, guests: Guest[], move: SeatM
   const guest = guests.find((candidate) => candidate.id === move.guestId) ?? { id: move.guestId, name: move.guestId } as Guest
   const displacedGuest = move.displacedGuestId ? guests.find((candidate) => candidate.id === move.displacedGuestId) ?? null : null
   const after = movePlanSeat(plan, move)
-  const afterReport = evaluateRegistered(after)
+  const afterReport = evaluateRegisteredWithKitchenBriefs(after).report
   return {
     guest, from: move.from, to: move.to, displacedGuest,
     reseatedCount: reseatedGuestIds(plan, after, [move.guestId, ...(move.displacedGuestId ? [move.displacedGuestId] : [])]).length,

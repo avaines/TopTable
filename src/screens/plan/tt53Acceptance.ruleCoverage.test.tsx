@@ -6,6 +6,7 @@ import { PlanScreen } from './PlanScreen'
 import { useTopTableStore } from '../../store/store'
 import type { Guest } from '../../domain/types'
 import { NavigationContext } from '../../shell/navigation'
+import { REGISTERED_RULES } from '../../domain/rules/registry'
 
 /**
  * TT-53 — an acceptance-level pass over the rule-coverage line, driven through the real
@@ -80,8 +81,8 @@ beforeEach(() => {
 
 describe('TT-53 — the rule-coverage line, driven end to end through the real PlanScreen', () => {
   it(
-    'a scored, publishable plan shows "5 of 10 rules built" beside the Fit figure; the ' +
-      'violations panel still reads exactly "5 rules registered", carrying no denominator of ' +
+      `a scored, publishable plan shows "${REGISTERED_RULES.length} of 10 rules built" beside the Fit figure; the ` +
+      `violations panel still reads exactly "${REGISTERED_RULES.length} rules registered", carrying no denominator of ` +
       'its own; and the publishability line still accompanies the figure (pins today\'s ' +
       'registered count of 4 — expected to need a one-line bump, not a fix, as each of TT-17 to ' +
       'TT-22 raises it toward the declared 10)',
@@ -94,7 +95,7 @@ describe('TT-53 — the rule-coverage line, driven end to end through the real P
       await user.click(screen.getByRole('button', { name: 'Auto-allocate' }))
 
       // The real coverage, exactly as it reads today.
-      expect(document.body.textContent).toContain('5 of 10 rules built')
+      expect(document.body.textContent).toContain(`${REGISTERED_RULES.length} of 10 rules built`)
 
       // The violations panel's own "N rules registered" line, untouched by this ticket, reads
       // exactly what it always has. Matched on the paragraph's whole textContent rather than by
@@ -102,7 +103,7 @@ describe('TT-53 — the rule-coverage line, driven end to end through the real P
       // elements — and matched exactly rather than as a substring, which is what makes this the
       // guard that the panel gained no denominator of its own: any suffix fails it.
       const registeredLine = screen.getByText(
-        (_content, element) => element?.tagName === 'P' && element.textContent === '5 rules registered',
+        (_content, element) => element?.tagName === 'P' && element.textContent === `${REGISTERED_RULES.length} rules registered`,
       )
       expect(registeredLine).toBeInTheDocument()
 

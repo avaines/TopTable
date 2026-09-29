@@ -59,7 +59,8 @@ describe('TT-23 pointer acceptance', () => {
     const from = chair(1, 1, 'Alpha'); const to = within(screen.getByRole('group', { name: 'Seats at Table 2' })).getAllByRole('img').find((node) => node.getAttribute('aria-label')?.includes('empty'))
     if (!to) throw new Error('expected an empty chair in Table 2')
     await user.pointer([{ keys: '[MouseLeft>]', target: from }, { target: to }])
-    expect(screen.queryAllByText(/other guest[s]? change seat too/).length).toBeGreaterThan(0)
+    const moving = screen.getByRole('heading', { name: /Moving/ }).parentElement?.parentElement
+    expect(moving).toHaveTextContent(/0 other guests change seats too/)
     await user.pointer({ keys: '[/MouseLeft]', target: to })
     expect(within(screen.getByRole('group', { name: 'Seats at Table 2' })).getByRole('img', { name: 'Seat 2, Alpha' })).toBeInTheDocument()
   })

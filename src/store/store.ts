@@ -19,8 +19,8 @@ import { applySeatMove, pinGuest as domainPinGuest, unpinGuest as domainUnpinGue
  * data plus the rules, and they arrive with their own tickets. A pin is a human decision, not
  * a derivation (TT-12), so unlike those it is stored.
  *
- * The write surface is eleven actions: setEventName, setRoom, setGuests, importScenario, reset,
- * addGuest, updateGuest, removeGuest, pinGuest, unpinGuest and clearPins. addGuest, updateGuest
+ * The write surface is thirteen actions: setEventName, setRoom, setGuests, importScenario, reset,
+ * addGuest, updateGuest, removeGuest, pinGuest, moveGuest, restorePins, unpinGuest and clearPins. addGuest, updateGuest
  * and removeGuest are thin delegates onto `src/domain/guests.ts`; pinGuest and unpinGuest the
  * same onto `src/domain/pins.ts` — none of that behaviour is improvised here. clearPins (TT-37)
  * is not a delegate: emptying a list owns no behaviour worth a domain function of its own.
