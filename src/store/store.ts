@@ -8,7 +8,7 @@ import {
   removeGuest as domainRemoveGuest,
   updateGuest as domainUpdateGuest,
 } from '../domain/guests'
-import { pinGuest as domainPinGuest, unpinGuest as domainUnpinGuest } from '../domain/pins'
+import { applySeatMove, pinGuest as domainPinGuest, unpinGuest as domainUnpinGuest, type SeatMove } from '../domain/pins'
 
 /**
  * The single store. It holds the event, the room config, the guest list, which scenario (if
@@ -64,6 +64,8 @@ export type TopTableActions = {
   removeGuest: (id: string) => void
   /** Places a guest at a table, replacing any pin they already held (TT-12). See `src/domain/pins.ts`. */
   pinGuest: (guestId: string, tableId: string) => void
+  moveGuest: (move: SeatMove) => void
+  restorePins: (pins: Pin[]) => void
   /** Releases a guest's pin, if they hold one (TT-12). See `src/domain/pins.ts`. */
   unpinGuest: (guestId: string) => void
   /** Empties every pin (TT-37). Not a domain delegate: there is no behaviour here to own. */
@@ -181,6 +183,9 @@ export const useTopTableStore = create<TopTableStore>()(
 
       pinGuest: (guestId, tableId) =>
         set((state) => ({ pins: domainPinGuest(state.pins, guestId, tableId) })),
+
+      moveGuest: (move) => set((state) => ({ pins: applySeatMove(state.pins, move) })),
+      restorePins: (pins) => set({ pins }),
 
       unpinGuest: (guestId) => set((state) => ({ pins: domainUnpinGuest(state.pins, guestId) })),
 

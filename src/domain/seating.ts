@@ -282,6 +282,16 @@ export function seatPins(room: RoomConfig, guests: Guest[], pins: Pin[]): Seatin
 
   const unseated: Guest[] = []
 
+  // Reserve valid exact round seats first so legacy table pins cannot take them.
+  const exact = new Map<string, number>()
+  for (const guest of guests) {
+    const pin = pins.find((candidate) => candidate.guestId === guest.id)
+    const table = pin && tables.get(pin.tableId)
+    if (pin && table?.kind === 'round' && Number.isInteger(pin.seatIndex) && pin.seatIndex! >= 0 && pin.seatIndex! < table.capacity) {
+      exact.set(guest.id, pin.seatIndex!)
+    }
+  }
+
   for (const guest of guests) {
     const tableId = honoured.get(guest.id)
     if (tableId === undefined) {
@@ -291,7 +301,10 @@ export function seatPins(room: RoomConfig, guests: Guest[], pins: Pin[]): Seatin
 
     const table = tableFor(tables, tableId)
     const seats = table.seats.slice()
-    const freeIndex = seats.findIndex((seat) => seat === null)
+    const requested = exact.get(guest.id)
+    const freeIndex = requested !== undefined && seats[requested] === null
+      ? requested
+      : seats.findIndex((seat) => seat === null)
     if (freeIndex === -1) {
       tables.set(tableId, { ...table, overflow: [...table.overflow, { guest, pinned: true }] })
     } else {

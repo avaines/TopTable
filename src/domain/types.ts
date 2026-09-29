@@ -156,4 +156,5 @@ export type EventDetails = {
 export type Pin = {
   guestId: string
   tableId: string
+  seatIndex?: number
 }

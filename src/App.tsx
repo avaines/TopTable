@@ -4,6 +4,15 @@ import { useNavigation } from './shell/navigation'
 import { SetupScreen } from './screens/setup/SetupScreen'
 import { GuestsScreen } from './screens/guests/GuestsScreen'
 import { PlanScreen } from './screens/plan/PlanScreen'
+import type { SeatingPlan } from './domain/seating'
+import type { Guest, Pin, RoomConfig } from './domain/types'
+
+export type PlanSnapshot = {
+  plan: SeatingPlan
+  source: { room: RoomConfig; guests: Guest[]; pins: Pin[] }
+  beforePins: Pin[]
+  beforePlan: SeatingPlan
+}
 
 /**
  * The shell and the section-to-screen map. Setup (TT-3, TT-4), Guests (TT-6, TT-5) and Plan
@@ -21,10 +30,11 @@ import { PlanScreen } from './screens/plan/PlanScreen'
  */
 export default function App() {
   const [allocated, setAllocated] = useState(false)
+  const [planSnapshot, setPlanSnapshot] = useState<PlanSnapshot | null>(null)
 
   return (
     <AppShell>
-      <CurrentScreen allocated={allocated} setAllocated={setAllocated} />
+      <CurrentScreen allocated={allocated} setAllocated={setAllocated} planSnapshot={planSnapshot} setPlanSnapshot={setPlanSnapshot} />
     </AppShell>
   )
 }
@@ -32,9 +42,11 @@ export default function App() {
 type CurrentScreenProps = {
   allocated: boolean
   setAllocated: (allocated: boolean) => void
+  planSnapshot: PlanSnapshot | null
+  setPlanSnapshot: (snapshot: PlanSnapshot | null) => void
 }
 
-function CurrentScreen({ allocated, setAllocated }: CurrentScreenProps) {
+function CurrentScreen({ allocated, setAllocated, planSnapshot, setPlanSnapshot }: CurrentScreenProps) {
   const { tab } = useNavigation()
 
   switch (tab) {
@@ -50,6 +62,6 @@ function CurrentScreen({ allocated, setAllocated }: CurrentScreenProps) {
     case 'guests':
       return <GuestsScreen />
     case 'plan':
-      return <PlanScreen allocated={allocated} setAllocated={setAllocated} />
+      return <PlanScreen allocated={allocated} setAllocated={setAllocated} planSnapshot={planSnapshot} setPlanSnapshot={setPlanSnapshot} />
   }
 }

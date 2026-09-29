@@ -29,6 +29,7 @@ import type { UnseatedFilters } from './unseatedFilter'
 import { GuestHoverCard } from './GuestHoverCard'
 import { guestSummaryFields } from './guestSummary'
 import styles from './PlanScreen.module.css'
+import type { PlanSnapshot } from '../../App'
 
 /** Exhaustiveness for the `column.kind` switch below — a fifth `ThirdColumn` member fails
  *  `npm run typecheck` here rather than silently rendering nothing. */
@@ -72,9 +73,12 @@ function assertNever(value: never): never {
 type PlanScreenProps = {
   allocated: boolean
   setAllocated: (allocated: boolean) => void
+  planSnapshot?: PlanSnapshot | null
+  setPlanSnapshot?: (snapshot: PlanSnapshot | null) => void
 }
 
-export function PlanScreen({ allocated, setAllocated }: PlanScreenProps) {
+export function PlanScreen({ allocated, setAllocated, planSnapshot = null, setPlanSnapshot }: PlanScreenProps) {
+  void setPlanSnapshot
   const room = useTopTableStore((s) => s.room)
   const guests = useTopTableStore((s) => s.guests)
   const scenario = useTopTableStore((s) => s.scenario)
@@ -121,10 +125,12 @@ export function PlanScreen({ allocated, setAllocated }: PlanScreenProps) {
   // separate run — so the rules a rendered seat obeys and the rules an announced figure was
   // computed from can never be two different guards (TT-14).
   const seatGuard = useMemo(() => registeredSeatGuard(), [])
-  const plan = useMemo(
+  const derivedPlan = useMemo(
     () => (allocated ? allocate(room, guests, pins, { allowSeat: seatGuard }) : seatPins(room, guests, pins)),
     [allocated, room, guests, pins, seatGuard],
   )
+  const snapshotMatches = planSnapshot !== null && planSnapshot.source.room === room && planSnapshot.source.guests === guests && planSnapshot.source.pins === pins
+  const plan = snapshotMatches ? planSnapshot.plan : derivedPlan
   const report = useMemo(() => evaluateRegistered(plan), [plan])
   // TT-48. Derived from the same `plan` object `report` was evaluated from, so the score, the
   // violations and the coverage factor can never describe different plans.

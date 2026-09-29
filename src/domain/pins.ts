@@ -1,5 +1,8 @@
 import type { Pin } from './types'
 
+export type SeatAddress = { tableId: string; seatIndex: number }
+export type SeatMove = { guestId: string; from: SeatAddress; to: SeatAddress; displacedGuestId?: string }
+
 /**
  * Pin bookkeeping for the plan: who is placed at which table. Pure — no import beyond `Pin`,
  * no store, no rendering — and one pin per guest by construction, so nothing here needs a
@@ -21,6 +24,20 @@ export function pinGuest(pins: Pin[], guestId: string, tableId: string): Pin[] {
     return [...pins, { guestId, tableId }]
   }
   return pins.map((pin, i) => (i === index ? { guestId, tableId } : pin))
+}
+
+export function pinGuestToSeat(pins: Pin[], guestId: string, address: SeatAddress): Pin[] {
+  const next = { guestId, tableId: address.tableId, seatIndex: address.seatIndex }
+  const index = pins.findIndex((pin) => pin.guestId === guestId)
+  if (index === -1) return [...pins, next]
+  return pins.map((pin, i) => (i === index ? next : pin))
+}
+
+export function applySeatMove(pins: Pin[], move: SeatMove): Pin[] {
+  if (move.from.tableId === move.to.tableId && move.from.seatIndex === move.to.seatIndex) return pins
+  let next = pinGuestToSeat(pins, move.guestId, move.to)
+  if (move.displacedGuestId) next = pinGuestToSeat(next, move.displacedGuestId, move.from)
+  return next
 }
 
 /**
