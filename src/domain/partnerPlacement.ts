@@ -80,7 +80,19 @@ export function seatPartners(
   }
   if (roundTables.some((table) => (forcedCounts.get(table.id) ?? 0) > table.capacity)) return null
 
-  units.sort((a, b) => Number(Boolean(b.tableId)) - Number(Boolean(a.tableId)) || members(b).length - members(a).length)
+  // Place the most constrained pinned units first. A pinned guest may not be moved to make
+  // room for an optional partner, and placing pinned-only units before coupled units lets the
+  // guard see those fixed occupants before it considers the partner. This keeps a later pinned
+  // conflict from being hidden by an earlier optional partner.
+  const pinnedCount = (unit: Unit) => members(unit).filter((guest) => honoured.has(guest.id)).length
+  units.sort((a, b) =>
+    Number(Boolean(b.tableId)) - Number(Boolean(a.tableId)) ||
+    (a.tableId && b.tableId
+      ? pinnedCount(b) - pinnedCount(a) ||
+        (members(a).length - pinnedCount(a)) - (members(b).length - pinnedCount(b)) ||
+        members(a).length - members(b).length
+      : members(b).length - members(a).length),
+  )
 
   const tables: MutableTable[] = initial.map((table) => ({ ...table, seats: [...table.seats] }))
   const rounds = tables.filter((table) => table.kind === 'round')
@@ -122,8 +134,64 @@ export function seatPartners(
     suffixRequired[index] = required
   }
 
+  function hasCandidatePlacement(index: number): boolean {
+    const unit = units[index]!
+    for (const occupants of variants[index]!) {
+      if (occupants.length === 0) return true
+      for (let tableIndex = 0; tableIndex < rounds.length; tableIndex++) {
+        const table = rounds[tableIndex]!
+        if (unit.tableId && unit.tableId !== table.id) continue
+        for (let start = 0; start + occupants.length <= table.capacity; start++) {
+          if (occupants.some((_, offset) => table.seats[start + offset] !== null)) continue
+          const trialTables = tables.map((candidate) => ({ ...candidate, seats: [...candidate.seats] }))
+          const trialTable = trialTables.find((candidate) => candidate.id === table.id)
+          if (!trialTable) continue
+          let accepted = true
+          for (let offset = 0; offset < occupants.length; offset++) {
+            const guest = occupants[offset]!
+            const pinned = honoured.get(guest.id) === table.id
+            if (!pinned && !allowSeat({
+              plan: { tables: trialTables }, tableId: table.id, seatIndex: start + offset, guest,
+            })) {
+              accepted = false
+              break
+            }
+            trialTable.seats[start + offset] = { guest, pinned }
+          }
+          if (accepted) return true
+        }
+      }
+    }
+    return false
+  }
+
   function search(index: number, seated: number): boolean {
-    if (index === units.length) return seated === target
+    if (index === units.length) {
+      if (seated !== target) return false
+      // Guards see a partial plan while the search is running. Recheck each unpinned occupant
+      // against the completed candidate so a later pinned unit cannot invalidate an earlier
+      // optional placement. Removing the occupant before asking mirrors a fresh placement.
+      for (const table of tables) {
+        if (table.kind !== 'round') continue
+        for (let seatIndex = 0; seatIndex < table.seats.length; seatIndex++) {
+          const seat = table.seats[seatIndex]
+          if (!seat || seat.pinned) continue
+          const seats = [...table.seats]
+          seats[seatIndex] = null
+          const candidateTables = tables.map((other) => other.id === table.id ? { ...other, seats } : other)
+          if (!allowSeat({
+            plan: { tables: candidateTables },
+            tableId: table.id,
+            seatIndex,
+            guest: seat.guest,
+          })) return false
+        }
+      }
+      return true
+    }
+    for (let future = index; future < units.length; future++) {
+      if (!hasCandidatePlacement(future)) return false
+    }
     const free = rounds.map((table, i) => table.capacity - fills[i]!)
     if (free.some((count, tableIndex) => count < suffixRequired[index]![tableIndex]!)) return false
     const pairSlots = free.reduce((sum, count) => sum + Math.floor(count / 2), 0)

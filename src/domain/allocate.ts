@@ -278,7 +278,7 @@ const allowEverySeat: SeatGuard = () => true
  * Protocol fixes the top table first. Nonexempt couples are then placed as adjacent units,
  * with pins restricting tables and omitted protocol roles kept together. If no maximally seated layout
  * exists, honour pins and fill usable seats with only explicitly relaxable guard rules lifted;
- * their hard findings remain visible. Guest lists without couples retain the ordinary fill.
+ * their hard findings remain visible. Singleton guests use the same constrained search as couples.
  */
 export function allocate(room: RoomConfig, guests: Guest[], pins: Pin[], options?: AllocateOptions): SeatingPlan {
   const allowSeat = options?.allowSeat ?? allowEverySeat
@@ -308,11 +308,11 @@ export function allocate(room: RoomConfig, guests: Guest[], pins: Pin[], options
   const includedRoles = topSlot ? seatTopTable(tableFor(tables, topSlot.id), guests, honoured, seatedGuestIds) : []
 
   const omittedRoles = PROTOCOL_ROLES.filter((role) => !includedRoles.includes(role))
-  const partnerResult = seatPartners(planSoFar.tables, guests, honoured, omittedRoles, allowSeat)
-  if (partnerResult) return partnerResult
+  const constrainedPlan = seatPartners(planSoFar.tables, guests, honoured, omittedRoles, allowSeat)
+  if (constrainedPlan !== null) return constrainedPlan
 
   seatHonouredRoundPins(tables, guests, honoured, seatedGuestIds)
-  const fallbackGuard = partnerResult === null ? allowSeat.whenInfeasible ?? allowSeat : allowSeat
+  const fallbackGuard = allowSeat.whenInfeasible ?? allowSeat
   seatProtocolOverflowBlock(tables, roundSlots, guests, omittedRoles, seatedGuestIds, fallbackGuard, planSoFar)
   const unseated = fillRemainingGuests(tables, roundSlots, guests, seatedGuestIds, fallbackGuard, planSoFar)
 
