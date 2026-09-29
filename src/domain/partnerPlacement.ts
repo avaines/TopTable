@@ -13,7 +13,9 @@ function members(unit: Unit): Guest[] {
 /**
  * Couples are contiguous two-seat segments; omitted protocol roles share a table, not a chair
  * order. Searching those units avoids permutations of equivalent chairs and unrelated singles.
- * Undefined means no nonexempt couple; null means no maximally seated arrangement satisfies them.
+ * null means no maximally seated arrangement satisfies the hard placement constraints. Singleton
+ * units are intentional: the same constrained search also keeps independent guests out of
+ * conflict tables instead of committing them in guest-list order.
  */
 export function seatPartners(
   initial: readonly SeatedTable[],
@@ -21,7 +23,7 @@ export function seatPartners(
   honoured: ReadonlyMap<string, string>,
   omittedRoles: readonly ProtocolRole[],
   allowSeat: SeatGuard,
-): SeatingPlan | null | undefined {
+): SeatingPlan | null {
   const alreadySeated = new Set(initial.flatMap((table) =>
     [...table.seats, ...table.overflow].flatMap((seat) => seat ? [seat.guest.id] : []),
   ))
@@ -35,8 +37,6 @@ export function seatPartners(
     partners.set(guest.id, guest.partnerOf)
     partners.set(guest.partnerOf, guest.id)
   }
-  if (partners.size === 0) return undefined
-
   const roundTables = initial.filter((table) => table.kind === 'round')
   const target = Math.min(remaining.length, roundTables.reduce((sum, table) => sum + table.capacity, 0))
   const short = target < remaining.length

@@ -38,6 +38,28 @@ function makeGuest(id: string, overrides: Partial<Guest> = {}): Guest {
 }
 
 describe('allocate — the shape of a plan', () => {
+  it('backtracks independent guests around a hard seat guard', () => {
+    const room: RoomConfig = { roundTables: 2, seatsEach: 2, topTableSeats: 0 }
+    const guests = [
+      makeGuest('a'),
+      makeGuest('b'),
+      makeGuest('c'),
+      makeGuest('d'),
+    ]
+    const guard: SeatGuard = ({ plan, tableId, guest }) => {
+      const table = plan.tables.find((candidate) => candidate.id === tableId)
+      return !table?.seats.some((seat) => seat?.guest.conflictsWith.includes(guest.id) || guest.conflictsWith.includes(seat?.guest.id ?? ''))
+    }
+    guests[2]!.conflictsWith = ['d']
+    guests[3]!.conflictsWith = ['c']
+    const plan = allocate(room, guests, [], { allowSeat: guard })
+    expect(plan.unseated).toEqual([])
+    expect(plan.tables.flatMap((table) => table.seats.filter(Boolean)).some((seat) => seat?.guest.id === 'c')).toBe(true)
+    expect(plan.tables.every((table) => {
+      const seated = table.seats.filter(Boolean).map((seat) => seat!.guest.id)
+      return !(seated.includes('c') && seated.includes('d'))
+    })).toBe(true)
+  })
   it('produces one table per slot tablesInRoom would generate for the same room, in the same order', () => {
     const room: RoomConfig = { roundTables: 2, seatsEach: 4, topTableSeats: 4 }
     const guests = [makeGuest('g-1'), makeGuest('g-2')]
