@@ -33,10 +33,10 @@ describe('RulesApplied — a "Rules applied" heading, below the panel title', ()
 })
 
 describe('RulesApplied — grouped by severity, Hard then Soft, each a real heading (KB-6 semantics)', () => {
-  it('renders "Hard" and "Soft" as headings, Hard before Soft', () => {
+  it('renders the Hard heading without an empty Soft group', () => {
     render(<RulesApplied />)
     const headings = screen.getAllByRole('heading').map((heading) => heading.textContent)
-    expect(headings).toEqual(['Rules applied', 'Hard', 'Soft'])
+    expect(headings).toEqual(['Rules applied', 'Hard'])
   })
 
   it('renders today\'s four registered rules under the right severity group, id-ascending', () => {
@@ -46,9 +46,10 @@ describe('RulesApplied — grouped by severity, Hard then Soft, each a real head
     expect(expected.hard).toEqual([
       'A table must not be seated above its capacity',
       'Every guest has a seat while the room still has an empty one',
+      'Partners must sit next to each other, not merely at the same table',
       'The top table contains only guests holding a protocol role, in the protocol order',
     ])
-    expect(expected.soft).toEqual(['Partners should sit next to each other, not merely at the same table'])
+    expect(expected.soft).toEqual([])
 
     // Queried by each list's accessible name, which comes from its own <h4> via aria-labelledby.
     // That is the tie between a rule and its severity here — not a class name, and not a DOM
@@ -57,7 +58,7 @@ describe('RulesApplied — grouped by severity, Hard then Soft, each a real head
       Array.from(screen.getByRole('list', { name: heading }).querySelectorAll('li')).map((item) => item.textContent)
 
     expect(under('Hard')).toEqual(expected.hard)
-    expect(under('Soft')).toEqual(expected.soft)
+    expect(screen.queryByRole('list', { name: 'Soft' })).not.toBeInTheDocument()
   })
 
   it('shows each rule\'s description and nothing else — no id, no weight, no remedy', () => {
@@ -79,7 +80,7 @@ describe('RulesApplied — carries severity by the heading word alone, never dat
     const { container } = render(<RulesApplied />)
     const text = container.textContent ?? ''
     expect(text).toContain('Hard')
-    expect(text).toContain('Soft')
+    expect(text).not.toContain('Soft')
     expect(text).not.toMatch(/\bHARD\b/)
     expect(text).not.toMatch(/\bSOFT\b/)
   })

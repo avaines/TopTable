@@ -101,18 +101,11 @@ function pinnedWithoutRoleCount(table: SeatedTable): number {
 export const rule = {
   id: 'top-table',
   severity: 'hard',
-  // `remedy: 'flag'` is forced, not chosen: `contract.ts` types a hard `remedy: 'seating'` rule's
-  // `evaluate` against `GuardPlan` (tables only), and this rule needs the full guest list. That
-  // drops it out of `seatGuardFrom`'s guardable set, which is inert twice over even setting that
-  // aside: `seatProtocolOverflowBlock` (phase 3) and `seatIntoFirstAllowedSeat` (phase 4) are the
-  // only other callers of `allowSeat`, and — as `allocate`'s own doc comment says — both walk
-  // round slots only, while every finding this rule raises carries `tableIds: ['top']`, a value
-  // `seatGuardFrom`'s `finding.tableIds.includes(candidate.tableId)` can never match. A top table
-  // becoming a fill destination must re-examine this; allocateWithRules.test.ts is the suite that
-  // would catch it.
+  // The allocator fixes protocol before the round-table fill; speculative round seats cannot
+  // repair top-table findings. Revisit this if the top table ever becomes a fill destination.
   remedy: 'flag',
   description: 'The top table contains only guests holding a protocol role, in the protocol order',
-  evaluate: (plan) => {
+  evaluate: (plan: RulePlan) => {
     const table = plan.tables.find((candidate) => candidate.kind === 'top')
     if (!table) return { findings: [], opportunities: 0, missed: 0 }
 

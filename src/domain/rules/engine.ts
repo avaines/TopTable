@@ -122,37 +122,25 @@ export function withSeat(plan: GuardPlan, tableId: string, seatIndex: number, gu
   }
 }
 
-/** `rule.severity === 'hard' && rule.remedy === 'seating'`, narrowed to `GuardableRule` so its
- *  `evaluate` is callable on a bare `GuardPlan` — see `contract.ts`. */
 function isGuardable(rule: SeatingRule): rule is GuardableRule {
   return rule.severity === 'hard' && rule.remedy === 'seating'
 }
 
-/**
- * Filters to the rules a solver can act on — a hard `remedy: 'flag'` rule must never send
- * auto-allocate hunting for a seat that does not exist. Allows every seat when that set is empty,
- * mirroring `allocate.ts`'s own "no rules registered yet" default.
- *
- * Asks the rule's own `evaluate` a speculative question over `withSeat(...)` rather than a
- * second `allowsSeat` function per rule: two functions per rule are two things to keep in step,
- * and one `evaluate` over a hypothetical plan cannot disagree with itself.
- */
+/** A speculative placement asks only for findings, never a score over an incomplete population. */
 export function seatGuardFrom(rules: readonly SeatingRule[]): SeatGuard {
   const guardRules = rules.filter(isGuardable)
-  if (guardRules.length === 0) {
-    return () => true
-  }
-
-  return (candidate: SeatCandidate) => {
+  const makeGuard = (active: readonly GuardableRule[]): SeatGuard => (candidate: SeatCandidate) => {
     const hypothetical = withSeat(candidate.plan, candidate.tableId, candidate.seatIndex, candidate.guest)
-
-    return !guardRules.some((rule) =>
-      rule
-        .evaluate(hypothetical)
-        .findings.some(
-          (finding) =>
-            finding.tableIds.includes(candidate.tableId) && finding.guestIds.includes(candidate.guest.id),
-        ),
-    )
+    return !active.some((rule) => {
+      const findings = rule.evaluatePlacement
+        ? rule.evaluatePlacement(hypothetical)
+        : rule.evaluate(hypothetical).findings
+      return findings.some((finding) =>
+        finding.tableIds.includes(candidate.tableId) && finding.guestIds.includes(candidate.guest.id),
+      )
+    })
   }
+  const guard = makeGuard(guardRules)
+  guard.whenInfeasible = makeGuard(guardRules.filter((rule) => !rule.relaxWhenInfeasible))
+  return guard
 }

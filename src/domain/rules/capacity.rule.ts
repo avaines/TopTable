@@ -1,4 +1,4 @@
-import type { Finding, SeatingRule } from './contract'
+import type { GuardPlan, Finding, SeatingRule } from './contract'
 
 /**
  * KB-2, hard: "A table must not be seated above its capacity". Written as `total > capacity`,
@@ -17,7 +17,7 @@ export const rule = {
   severity: 'hard',
   remedy: 'seating',
   description: 'A table must not be seated above its capacity',
-  evaluate: (plan) => {
+  evaluate: (plan: GuardPlan) => {
     const findings: Finding[] = []
 
     for (const table of plan.tables) {

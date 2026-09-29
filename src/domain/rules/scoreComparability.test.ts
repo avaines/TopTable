@@ -198,25 +198,10 @@ describe('scorePlan — a complete plan beats an incomplete one, on the same gue
     expect(mostlyUnseated.score).not.toBeNull()
     expect(complete.score as number).toBeGreaterThan(mostlyUnseated.score as number)
 
-    // Hand-computed from KB-8, now that capacity, everyone-seated (TT-47) and partners-adjacent
-    // all score (top-table has no top table in either fixture, so it drops out of both means):
-    //
-    // Complete (20 guests, 20 seats, all seated): capacity fit 1.0 (12 opportunities — one per
-    // table — 0 missed, weight 3); everyone-seated fit 1.0 (min(20, 20) = 20 opportunities, 0
-    // missed — nobody unseated, weight 3); partners-adjacent fit 0.8 (10 opportunities, 2 missed —
-    // the two split pairs, each a finding across two tables), weight 1.
-    // Mean = (3×1.0 + 3×1.0 + 1×0.8) / (3+3+1) = 6.8/7 = 0.971428... Coverage factor 20/20 = 1.
-    // Score = round(0.971428... × 1 × 100) = 97.
-    //
-    // Mostly unseated (20 guests, 4 seats, 4 seated): capacity fit 1.0 (2 opportunities, 0 missed,
-    // weight 3); everyone-seated fit 1.0 (min(20, 4) = 4 opportunities; the room is short *and*
-    // full — 0 free seats — so missed = min(16, 0) = 0: the rule stays quiet exactly as KB-1/KB-2
-    // require, weight 3); partners-adjacent fit 0.2 (10 opportunities, 8 missed — the eight
-    // wholly-unseated pairs), weight 1.
-    // Mean = (3×1.0 + 3×1.0 + 1×0.2) / 7 = 6.2/7 = 0.885714... Coverage factor 4/20 = 0.2.
-    // Score = round(0.885714... × 0.2 × 100) = round(17.7142...) = 18.
-    expect(complete.score).toBe(97)
-    expect(mostlyUnseated.score).toBe(18)
+    // All three dimensions are hard, with equal weight: (1+1+0.8)/3 and (1+1+0.2)/3.
+    // Coverage is 1 for the complete plan and 0.2 for the mostly unseated plan.
+    expect(complete.score).toBe(93)
+    expect(mostlyUnseated.score).toBe(15)
   })
 })
 

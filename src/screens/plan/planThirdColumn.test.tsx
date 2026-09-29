@@ -177,12 +177,6 @@ function openPrompt(): HTMLElement {
   return node
 }
 
-/**
- * A room with a seated partner pair pinned at two different tables — guaranteed to violate
- * partners-adjacent regardless of which seat within a table either lands on, since they are never
- * on the same table at all. This is the one soft rule registered today, so this guarantees a
- * real, non-null score (0) without depending on any seat-assignment tie-break.
- */
 function setUpScorableRoom(): void {
   useTopTableStore.getState().setRoom({ roundTables: 1, seatsEach: 4, topTableSeats: 2 })
   const a = makeGuest('a', { name: 'Partner A', partnerOf: 'b' })
@@ -353,7 +347,7 @@ describe('the score stays rendered in the header while a table detail is open', 
 })
 
 describe('placing a guest changes the score shown in the header with no further interaction', () => {
-  it('placing the second half of a partner pair moves a real, non-null score from 32 toward 100 (TT-46, TT-47, TT-48)', async () => {
+  it('placing the second half of a partner pair moves a real, non-null score from 25 toward 100 (TT-46, TT-47, TT-48)', async () => {
     useTopTableStore.getState().setRoom({ roundTables: 1, seatsEach: 2, topTableSeats: 2 })
     const a = makeGuest('a', { name: 'Partner A', partnerOf: 'b' })
     const b = makeGuest('b', { name: 'Partner B', partnerOf: 'a' })
@@ -362,31 +356,13 @@ describe('placing a guest changes the score shown in the header with no further 
     const user = userEvent.setup()
     renderPlanScreen()
 
-    // This pair is on the guest list, so it is one opportunity regardless of who is seated yet —
-    // TT-16's fix for the comparability defect. With b unseated the pair is a missed chance, not
-    // a finding: partners-adjacent scores fit 0.0 at its default weight of 1. Capacity also scores
-    // (TT-46): two tables judged (round-1, top), neither over capacity, fit 1.0, weight 3.
-    // TT-47's everyone-seated also scores: 2 guests, 1 seated (a), 4 total seats, 3 free — a is
-    // seated and b is not, so opportunities = min(2, 4) = 2, missed = min(1, 3) = 1, fit 0.5,
-    // weight 3. TT-49's top-table does not score here: neither partner holds a protocol role, so
-    // nobody on the guest list holds either of the top table's two roles, and it has 0
-    // opportunities — left out of the mean, same as before TT-49.
-    // Mean = (3×1.0 + 3×0.5 + 1×0.0) / (3+3+1) = 4.5/7 = 0.642857...
-    // TT-48 scales that by coverage: 1 of 2 guests seated -> factor 0.5.
-    // score = round(0.642857... × 0.5 × 100) = round(32.1428...) = 32 — the toggle renders, and
-    // "Nothing to score" is absent.
+    // Capacity, everyone-seated and partners carry equal hard weights: mean 0.5, coverage 0.5.
     expect(document.body.textContent).not.toContain('Nothing to score')
-    expect(scoreToggle()).toHaveTextContent('32')
+    expect(scoreToggle()).toHaveTextContent('25')
 
     await user.click(screen.getByRole('button', { name: 'Partner B' }))
     await user.click(screen.getByRole('button', { name: /^Place Partner B at Table 1/ }))
 
-    // Table 1 has only 2 seats — with both partners now seated there, they are necessarily
-    // adjacent (a ring of two), so partners-adjacent is now a clean fit too: 1 opportunity, 0
-    // missed, fit 1.0. Everyone-seated is also clean now: both guests seated, fit 1.0. Top-table
-    // (TT-49) still has nothing to judge — placing Partner B doesn't give either of them a
-    // protocol role. Mean = (3×1.0 + 3×1.0 + 1×1.0) / (3+3+1) = 1.0, coverage factor 2/2 = 1 ->
-    // the plan score is exactly 100.
     expect(scoreToggle()).toHaveTextContent('100')
   })
 })
@@ -404,20 +380,7 @@ describe('clearing the allocation does not null the score while the guest list s
     await user.click(screen.getByRole('button', { name: 'Clear allocation and pins' }))
     await user.click(within(openPrompt()).getByRole('button', { name: 'Clear allocation and pins' }))
 
-    // Clearing removes pins and seats, not guests: the same partner pair is still on the guest
-    // list, so partners-adjacent still has one opportunity, one missed (both partners now
-    // unseated), fit 0.0, weight 1. Capacity also has opportunities here (TT-46): two tables
-    // judged (round-1, top), neither over capacity, fit 1.0, weight 3.
-    // TT-47's everyone-seated scores too: with the pins cleared, both guests are genuinely
-    // unseated in a 6-seat room (1×4 round + 2 top) — opportunities = min(2, 6) = 2, missed =
-    // min(2, 6) = 2, fit 0.0, weight 3.
-    // TT-49's top-table still has nothing to judge: neither guest holds a protocol role, so it
-    // has 0 opportunities and is left out of the mean, same as before TT-49.
-    // Mean = (3×1.0 + 3×0.0 + 1×0.0) / (3+3+1) = 3/7 = 0.428571...
-    // TT-48's coverage factor is 0 seated / 2 guests = 0, so the final figure is
-    // round(0.428571... × 0 × 100) = 0 — the coverage factor of 0 dominates whatever the mean is.
-    // Never null, since real dimensions still exist. The breakdown's own guard only clears on a
-    // null score, so it is expected to stay open.
+    // No seated guests means zero coverage, while the remaining opportunities keep the score non-null.
     expect(document.body.textContent).not.toContain('Nothing to score')
     expect(openColumnStates()).toEqual(['breakdown'])
     expect(scoreToggle()).toHaveTextContent('0')
@@ -644,20 +607,10 @@ describe('removeGuest dropping the guest list\'s last partner pair no longer nul
     const user = userEvent.setup()
     renderPlanScreen()
 
-    // A real, non-null score before the panel even opens — same guarantee as setUpScorableRoom,
-    // from the guest list alone (F1). Only c is pinned/seated; a and b are not.
-    // Capacity: two tables judged (round-1, top), neither over capacity, fit 1.0, weight 3.
-    // Partners-adjacent: a/b both unseated, fit 0.0, weight 1.
-    // TT-47's everyone-seated: 3 guests, 1 seated (c), 6 total seats, 5 free -> opportunities =
-    // min(3, 6) = 3, missed = min(2, 5) = 2, fit 1 - 2/3 = 0.333333..., weight 3.
-    // TT-49's top-table has nothing to judge: none of a, b or c holds a protocol role, so it has
-    // 0 opportunities and is left out of the mean.
-    // Mean = (3×1.0 + 3×0.333333... + 1×0.0) / (3+3+1) = 4/7 = 0.571428...
-    // TT-48's coverage factor: 1 of 3 guests seated -> 0.333333...
-    // score = round(0.571428... × 0.333333... × 100) = round(19.0476...) = 19.
+    // Mean (1 + 1/3 + 0)/3, scaled by coverage 1/3, rounds to 15.
     expect(document.body.textContent).not.toContain('Nothing to score')
     expect(queryScoreToggle()).not.toBeNull()
-    expect(scoreToggle()).toHaveTextContent('19')
+    expect(scoreToggle()).toHaveTextContent('15')
 
     await user.click(pinnedToggle())
     expect(openColumnStates()).toEqual(['pinned'])

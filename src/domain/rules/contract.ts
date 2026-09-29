@@ -11,12 +11,12 @@ export type Remedy = 'seating' | 'flag'
 /**
  * What a hard, remedy:'seating' rule is judged against — the only kind `seatGuardFrom` ever
  * calls, before `allocate.ts`'s solver has finished and while there is no real guest list to
- * give it (see `PlanSoFar` there). Such a rule's `evaluate` may ask for nothing more than this.
+ * give it (see `PlanSoFar` there). Its placement assessment may ask for nothing more than this.
  */
 export type GuardPlan = Pick<SeatingPlan, 'tables'>
 
 /**
- * What every other rule is judged against — the settled plan, guest list included and mandatory.
+ * What a completed plan is judged against — the settled plan, guest list included and mandatory.
  * A rule whose denominator comes from the guest list must fail to compile against a plan that
  * omits one; an earlier version of this file made `unseated` optional and that is what let TT-16's
  * original defect back in through every entry point.
@@ -90,16 +90,16 @@ type RuleFields = {
   weight?: number
 }
 
-/**
- * A hard, remedy:'seating' rule — `seatGuardFrom` filters to exactly this shape, and only this
- * shape, so its `evaluate` is typed to accept `GuardPlan` and nothing wider: it can never be
- * handed a guest list, and so can never require one.
- */
+/** Full-population rules supply a separate findings-only hook for speculative placements. */
 export type GuardableRule = RuleFields & {
   severity: 'hard'
   remedy: 'seating'
-  evaluate: (plan: GuardPlan) => RuleAssessment
-}
+  /** Keep unavoidable seating faults visible rather than hiding them by leaving guests out. */
+  relaxWhenInfeasible?: boolean
+} & (
+  | { evaluate: (plan: GuardPlan) => RuleAssessment; evaluatePlacement?: never }
+  | { evaluate: (plan: RulePlan) => RuleAssessment; evaluatePlacement: (plan: GuardPlan) => readonly Finding[] }
+)
 
 /**
  * Every rule that is not both hard and remedy:'seating'. Reported and scored on the settled plan
@@ -115,4 +115,10 @@ type ReportedRule = RuleFields &
  * A self-contained rule. `remedy: 'seating'` means a solver can satisfy it by moving people;
  * `'flag'` means only flagging the plan does — the guard reads this to tell the two apart.
  */
-export type SeatingRule = GuardableRule | ReportedRule
+export type SeatingRule = GuardableRule | ReportedRule | (RuleFields & {
+  severity: Severity
+  remedy: Remedy
+  evaluate: (plan: GuardPlan) => RuleAssessment
+  evaluatePlacement?: never
+  relaxWhenInfeasible?: boolean
+})

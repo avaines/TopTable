@@ -1,20 +1,18 @@
-import type { Finding, SeatingRule } from './contract'
+import type { Finding, RulePlan, SeatingRule } from './contract'
 import { planOccupancy } from '../seating'
 
 /**
  * TT-47, hard: "A guest without a seat is a violation while a seat is free. A room with fewer
  * seats than guests is short rather than in violation."
  *
- * `remedy: 'flag'` is forced, not chosen: `contract.ts` types a hard `remedy: 'seating'` rule's
- * `evaluate` against `GuardPlan` (tables only), and this rule needs the full guest list to know
- * who has no seat.
+ * An incomplete fill cannot decide who remains unseated, so only the finished plan is assessed.
  */
 export const rule = {
   id: 'everyone-seated',
   severity: 'hard',
   remedy: 'flag',
   description: 'Every guest has a seat while the room still has an empty one',
-  evaluate: (plan) => {
+  evaluate: (plan: RulePlan) => {
     const { guests, seated, totalSeats, freeSeats } = planOccupancy(plan)
     const unseatedEffective = guests - seated
     const opportunities = Math.min(guests, totalSeats)
