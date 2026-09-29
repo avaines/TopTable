@@ -31,6 +31,11 @@
   color: var(--ink-muted);
 }
 
+.briefs { margin-top: var(--s-4); }
+.briefs h3 { margin: 0 0 var(--s-2); font: var(--t-label); }
+.brief { margin-top: var(--s-2); }
+.brief p { margin-top: 2px !important; font: var(--t-caption); }
+
 /* KB-5's left bar, shape as well as colour (TT-14 supersedes KB-5's "soft gets the same, in
    amber"): solid for hard, dotted for soft — never dashed, which PlanTable.module.css already
    uses for a table in violation, so one shape does not mean two things. TT-35 adds the wash

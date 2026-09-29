@@ -6,7 +6,7 @@ import { totalSeats } from '../../domain/capacity'
 import { pinnedTableFor } from '../../domain/pins'
 import { normaliseRoom, planOccupancy, seatPins, tablesInRoom } from '../../domain/seating'
 import { allocate } from '../../domain/allocate'
-import { evaluateRegistered, registeredSeatGuard } from '../../domain/rules/registry'
+import { evaluateRegisteredWithKitchenBriefs, registeredSeatGuard } from '../../domain/rules/registry'
 import { isPublishable, tablesWithHardViolation } from '../../domain/rules/engine'
 import { scorePlan } from '../../domain/rules/score'
 import { isTopTableIncomplete } from '../setup/roomCompleteness'
@@ -134,10 +134,12 @@ export function PlanScreen({ allocated, setAllocated, planSnapshot = null, setPl
   )
   const snapshotMatches = planSnapshot !== null && planSnapshot.source.room === room && planSnapshot.source.guests === guests && planSnapshot.source.pins === pins
   const plan = snapshotMatches ? planSnapshot.plan : derivedPlan
-  const report = useMemo(() => evaluateRegistered(plan), [plan])
+  const evaluated = useMemo(() => evaluateRegisteredWithKitchenBriefs(plan), [plan])
+  const briefedPlan = evaluated.plan
+  const report = evaluated.report
   // TT-48. Derived from the same `plan` object `report` was evaluated from, so the score, the
   // violations and the coverage factor can never describe different plans.
-  const occupancy = useMemo(() => planOccupancy(plan), [plan])
+  const occupancy = useMemo(() => planOccupancy(briefedPlan), [briefedPlan])
   // TT-16. Derived from the same report the violations panel reads, so the score and the
   // violations list can never disagree about which plan they describe.
   const planScore = useMemo(() => scorePlan(report, occupancy), [report, occupancy])
@@ -502,7 +504,7 @@ export function PlanScreen({ allocated, setAllocated, planSnapshot = null, setPl
               // the only place that's handled.
               switch (column.kind) {
                 case 'violations':
-                  return <ViolationsPanel report={report} />
+                  return <ViolationsPanel report={report} kitchenBriefs={briefedPlan.kitchenBriefs} />
                 case 'table':
                   return selectedTable ? (
                     <TableDetailPanel
@@ -514,7 +516,7 @@ export function PlanScreen({ allocated, setAllocated, planSnapshot = null, setPl
                       dismissButtonRef={dismissButtonRef}
                     />
                   ) : (
-                    <ViolationsPanel report={report} />
+                    <ViolationsPanel report={report} kitchenBriefs={briefedPlan.kitchenBriefs} />
                   )
                 case 'breakdown':
                   return planScore.score !== null ? (
@@ -525,13 +527,13 @@ export function PlanScreen({ allocated, setAllocated, planSnapshot = null, setPl
                       onDismiss={handleDismissBreakdown}
                     />
                   ) : (
-                    <ViolationsPanel report={report} />
+                    <ViolationsPanel report={report} kitchenBriefs={briefedPlan.kitchenBriefs} />
                   )
                 case 'pinned':
                   return pinnedRows.length > 0 ? (
                     <PinnedGuestsPanel id={pinnedPanelId} rows={pinnedRows} onDismiss={handleDismissPinned} />
                   ) : (
-                    <ViolationsPanel report={report} />
+                    <ViolationsPanel report={report} kitchenBriefs={briefedPlan.kitchenBriefs} />
                   )
                 default:
                   return assertNever(column)
