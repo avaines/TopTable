@@ -89,6 +89,39 @@ export type SeatedTable = TableSlot & {
 export type SeatingPlan = {
   tables: readonly SeatedTable[]
   unseated: readonly Guest[]
+  /** Derived snapshot used by evaluation and presentation; refresh with `withKitchenBriefs`. */
+  kitchenBriefs?: readonly KitchenBrief[]
+}
+
+export type KitchenBriefGuest = {
+  id: string
+  name: string
+  allergies: readonly string[]
+}
+
+export type KitchenBrief = {
+  tableId: string
+  tableLabel: string
+  guests: readonly KitchenBriefGuest[]
+}
+
+export type KitchenBriefedPlan = SeatingPlan & { kitchenBriefs: readonly KitchenBrief[] }
+
+function allergyGuests(table: SeatedTable): KitchenBriefGuest[] {
+  const occupants = [...table.seats.flatMap((seat) => (seat ? [seat.guest] : [])), ...table.overflow.map((seat) => seat.guest)]
+  return occupants
+    .filter((guest) => guest.allergies.length > 0)
+    .map((guest) => ({ id: guest.id, name: guest.name, allergies: [...guest.allergies] }))
+}
+
+export function kitchenBriefsFor(plan: SeatingPlan): KitchenBrief[] {
+  return plan.tables
+    .map((table) => ({ tableId: table.id, tableLabel: table.label, guests: allergyGuests(table) }))
+    .filter((brief) => brief.guests.length > 0)
+}
+
+export function withKitchenBriefs(plan: SeatingPlan): KitchenBriefedPlan {
+  return { ...plan, kitchenBriefs: kitchenBriefsFor(plan) }
 }
 
 /**

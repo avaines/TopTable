@@ -1,4 +1,4 @@
-import type { SeatingPlan } from '../seating'
+import type { KitchenBrief, SeatingPlan } from '../seating'
 
 /**
  * The rule contract every `*.rule.ts` file implements. Named `contract.ts`, not `rule.ts`, so
@@ -21,7 +21,7 @@ export type GuardPlan = Pick<SeatingPlan, 'tables'>
  * omits one; an earlier version of this file made `unseated` optional and that is what let TT-16's
  * original defect back in through every entry point.
  */
-export type RulePlan = Pick<SeatingPlan, 'tables' | 'unseated'>
+export type RulePlan = Pick<SeatingPlan, 'tables' | 'unseated'> & { kitchenBriefs?: readonly KitchenBrief[] }
 
 /**
  * What a rule reports. `severity`, `remedy` and `ruleId` are not here — the engine stamps them

@@ -1,5 +1,6 @@
 import type { SeatGuard } from '../allocate'
 import type { RulePlan, SeatingRule } from './contract'
+import { withKitchenBriefs, type KitchenBriefedPlan, type SeatingPlan } from '../seating'
 import type { RuleReport } from './engine'
 import { evaluatePlan, seatGuardFrom } from './engine'
 
@@ -23,6 +24,11 @@ export const REGISTERED_RULES: readonly SeatingRule[] = Object.values(modules)
 
 export function evaluateRegistered(plan: RulePlan): RuleReport {
   return evaluatePlan(plan, REGISTERED_RULES)
+}
+
+export function evaluateRegisteredWithKitchenBriefs(plan: SeatingPlan): { plan: KitchenBriefedPlan; report: RuleReport } {
+  const briefed = withKitchenBriefs(plan)
+  return { plan: briefed, report: evaluatePlan(briefed, REGISTERED_RULES) }
 }
 
 export function registeredSeatGuard(): SeatGuard {

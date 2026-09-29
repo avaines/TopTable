@@ -1345,7 +1345,7 @@ describe('PlanScreen — the violations panel is the third column, beside the ra
     expect(screen.getByRole('heading', { name: 'Unseated' })).toBeInTheDocument()
     expect(tables().length).toBeGreaterThan(0)
     // Capacity, everyone-seated (TT-47), partners adjacent and top table.
-    expect(document.body.textContent).toContain('4 rules registered')
+    expect(document.body.textContent).toContain('5 rules registered')
   })
 
   // TT-47 (KB-2, "A guest with no seat is a violation wherever the room still has an empty seat"):

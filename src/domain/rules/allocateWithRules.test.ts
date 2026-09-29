@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { allocate } from '../allocate'
-import { evaluateRegistered, registeredSeatGuard } from './registry'
+import { evaluateRegistered, evaluateRegisteredWithKitchenBriefs, registeredSeatGuard } from './registry'
 import { hardViolations } from './engine'
 import { PROTOCOL_ROLES } from '../types'
 import type { Guest, Pin, RoomConfig } from '../types'
@@ -52,7 +52,7 @@ describe('allocate with registered hard rules satisfies feasible scenarios (TT-4
 
       const withRules = allocate(meta.tables, guests, [], { allowSeat: registeredSeatGuard() })
       expect(withRules.unseated).toEqual([])
-      expect(hardViolations(evaluateRegistered(withRules))).toEqual([])
+      expect(hardViolations(evaluateRegisteredWithKitchenBriefs(withRules).report)).toEqual([])
       expect(withRules).toEqual(allocate(meta.tables, guests, [], { allowSeat: registeredSeatGuard() }))
     },
   )
@@ -61,7 +61,7 @@ describe('allocate with registered hard rules satisfies feasible scenarios (TT-4
     const { meta, guests } = readScenario('small-and-cosy')
 
     const withRules = allocate(meta.tables, guests, [], { allowSeat: registeredSeatGuard() })
-    expect(hardViolations(evaluateRegistered(withRules))).toEqual([])
+    expect(hardViolations(evaluateRegisteredWithKitchenBriefs(withRules).report)).toEqual([])
     expect(withRules.unseated).toEqual([])
   })
 

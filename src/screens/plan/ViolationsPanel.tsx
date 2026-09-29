@@ -3,9 +3,11 @@ import { hardViolations, softViolations, type RuleReport } from '../../domain/ru
 import { Panel, tabularClass } from '../../ui'
 import { RulesApplied } from './RulesApplied'
 import styles from './ViolationsPanel.module.css'
+import type { KitchenBrief } from '../../domain/seating'
 
 type ViolationsPanelProps = {
   report: RuleReport
+  kitchenBriefs?: readonly KitchenBrief[]
 }
 
 type Entry = { violation: Violation; severity: 'hard' | 'soft' }
@@ -56,7 +58,7 @@ function Footer({ hardCount, softCount }: { hardCount: number; softCount: number
   return <p className={styles.footer}>No violations.</p>
 }
 
-export function ViolationsPanel({ report }: ViolationsPanelProps) {
+export function ViolationsPanel({ report, kitchenBriefs = [] }: ViolationsPanelProps) {
   const hard = hardViolations(report)
   const soft = softViolations(report)
   const entries: Entry[] = [
@@ -81,6 +83,17 @@ export function ViolationsPanel({ report }: ViolationsPanelProps) {
             </li>
           ))}
         </ul>
+      )}
+      {kitchenBriefs.length > 0 && (
+        <section aria-label="Kitchen briefs" className={styles.briefs}>
+          <h3>Kitchen briefs</h3>
+          {kitchenBriefs.map((brief) => (
+            <div key={brief.tableId} className={styles.brief}>
+              <strong className={styles.briefTableLabel}>{brief.tableLabel}</strong>
+              {brief.guests.map((guest) => <p key={guest.id}>{guest.name}: {guest.allergies.join(', ')}</p>)}
+            </div>
+          ))}
+        </section>
       )}
       <Footer hardCount={hard.length} softCount={soft.length} />
       <RulesApplied />

@@ -44,6 +44,7 @@ describe('RulesApplied — grouped by severity, Hard then Soft, each a real head
     const expected = expectedDescriptionsBySeverity()
 
     expect(expected.hard).toEqual([
+      'Allergy guests have a current kitchen brief',
       'A table must not be seated above its capacity',
       'Every guest has a seat while the room still has an empty one',
       'Partners must sit next to each other, not merely at the same table',
