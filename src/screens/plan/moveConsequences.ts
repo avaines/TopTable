@@ -6,7 +6,8 @@ import { movePlanSeat } from '../../domain/movePlanSeat'
 import type { SeatMove } from '../../domain/pins'
 import { tablesInRoom, type TableSlot } from '../../domain/seating'
 import type { Guest, Pin, RoomConfig } from '../../domain/types'
-import { allocate } from '../../domain/allocate'
+import { allocate, type SeatGuard } from '../../domain/allocate'
+import { pinGuest } from '../../domain/pins'
 import { seatPins } from '../../domain/seating'
 import { evaluateRegisteredWithKitchenBriefs } from '../../domain/rules/registry'
 
@@ -54,7 +55,10 @@ export type MovePreview = {
   clears: readonly Violation[]
   publishable: boolean
   slots: readonly TableSlot[]
-  status: 'move' | 'home' | 'nowhere' | 'refused'
+  status: 'move' | 'home' | 'nowhere' | 'refused' | 'table'
+  targetTableId?: string
+  targetSeat?: { tableId: string; seatIndex: number } | null
+  targetOverflow?: boolean
 }
 
 export function derivePlan(room: RoomConfig, guests: Guest[], pins: Pin[], allocated: boolean, guard?: Parameters<typeof allocate>[3]): SeatingPlan {
@@ -73,4 +77,51 @@ export function buildMovePreview(plan: SeatingPlan, guests: Guest[], move: SeatM
     publishable: isPublishable(afterReport), slots: tablesInRoom(room),
     status: 'move',
   }
+}
+
+export function buildTableMovePreview(
+  plan: SeatingPlan,
+  guests: Guest[],
+  pins: Pin[],
+  guestId: string,
+  tableId: string,
+  beforeReport: RuleReport,
+  room: RoomConfig,
+  guard: SeatGuard,
+): { preview: MovePreview; plan: SeatingPlan; pins: Pin[] } {
+  const nextPins = pinGuest(pins, guestId, tableId)
+  const nextPlan = allocate(room, guests, nextPins, { allowSeat: guard })
+  const nextReport = evaluateRegisteredWithKitchenBriefs(nextPlan).report
+  const guest = guests.find((candidate) => candidate.id === guestId) ?? ({ id: guestId, name: guestId } as Guest)
+  const table = nextPlan.tables.find((candidate) => candidate.id === tableId)
+  const targetIndex = table?.seats.findIndex((seat) => seat?.guest.id === guestId) ?? -1
+  const targetSeat = targetIndex >= 0 ? { tableId, seatIndex: targetIndex } : null
+  const targetOverflow = table?.overflow.some((seat) => seat.guest.id === guestId) ?? false
+  const from = seatOfGuest(plan, guestId)
+  return {
+    preview: {
+      guest,
+      from: from ?? { tableId, seatIndex: 0 },
+      to: targetSeat,
+      displacedGuest: null,
+      reseatedCount: reseatedGuestIds(plan, nextPlan, [guestId]).length,
+      ...violationChanges(beforeReport, nextReport),
+      publishable: isPublishable(nextReport),
+      slots: tablesInRoom(room),
+      status: 'table',
+      targetTableId: tableId,
+      targetSeat,
+      targetOverflow,
+    },
+    plan: nextPlan,
+    pins: nextPins,
+  }
+}
+
+function seatOfGuest(plan: SeatingPlan, guestId: string): { tableId: string; seatIndex: number } | null {
+  for (const table of plan.tables) {
+    const index = table.seats.findIndex((seat) => seat?.guest.id === guestId)
+    if (index >= 0) return { tableId: table.id, seatIndex: index }
+  }
+  return null
 }

@@ -187,7 +187,7 @@ export function PlanScreen({ allocated, setAllocated, planSnapshot = null, setPl
   // behavioural gain.
   const selectedTable = plan.tables.find((table) => table.id === selectedId) ?? null
   const floorplanAreaRef = useRef<HTMLDivElement>(null)
-  const seatMove = useSeatMove({ room, guests, pins, allocated, plan, report, seatGuard, placing: selectedGuest !== null, announce: setAnnouncement, onPickUp: () => { setHoveredSummary(null); setFocusedSummary(null) }, focusFallback: () => railHeadingRef.current?.focus(), setPlanSnapshot })
+  const seatMove = useSeatMove({ room, guests, pins, allocated, plan, report, seatGuard, placing: selectedGuest !== null, announce: setAnnouncement, onPickUp: () => { setHoveredSummary(null); setFocusedSummary(null) }, focusFallback: () => railHeadingRef.current?.focus(), setPlanSnapshot, setAllocated })
   const cancelHoldRef = useRef(seatMove.cancelHold)
   useEffect(() => { cancelHoldRef.current = seatMove.cancelHold }, [seatMove.cancelHold])
 
@@ -470,6 +470,7 @@ export function PlanScreen({ allocated, setAllocated, planSnapshot = null, setPl
                 onGuestFocus={handleGuestFocus}
                 onGuestBlur={handleGuestBlur}
                 chairMoveFor={seatMove.chairMoveFor}
+                tableMoveFor={seatMove.tableMoveFor}
               />
             </div>
             <div ref={railRef}>

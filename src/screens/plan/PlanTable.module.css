@@ -90,6 +90,10 @@
   overflow: visible;
 }
 
+.face[data-move='target'] { outline: 2px solid var(--slate); outline-offset: 3px; }
+.face[data-move='refused'] { outline: 2px solid var(--ink); outline-offset: 3px; }
+.face[data-move='refused'] .heading { text-decoration: line-through; }
+
 /* Not a grid item — FloorplanGrid.tsx renders this table in its own list, outside the grid. */
 .top {
   border-radius: var(--r-nav);

@@ -125,6 +125,12 @@ uses `restorePins` and a transient derived plan snapshot. The snapshot survives 
 is discarded on reload, and is invalidated by leaving Plan or changing its source inputs. Only the
 human pin decisions persist; the snapshot, findings and seating remain derived.
 
+A round-table body move replaces only the mover's pin with a table-only pin, then uses the existing
+allocator and registered seat guard to derive the resulting plan. It marks `allocated` true so a
+partially allocated view can accept the same action; the transient undo record restores the complete
+prior pins, derived snapshot and allocated flag. A cached candidate is reused while the pointer
+remains over one table, and is discarded when the source references change.
+
 TT-13 needed no version bump: the table address it canonicalised — `'top'`, `roundTableId(n)` —
 is the same string scheme already written into every pin in storage, so every pin from before
 that ticket stays valid.

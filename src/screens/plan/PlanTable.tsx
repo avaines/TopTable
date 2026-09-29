@@ -41,6 +41,7 @@ type PlanTableProps = {
   onGuestFocus?: (guestId: string, element: Element) => void
   onGuestBlur?: (guestId: string) => void
   chairMove?: ChairMoveProps
+  tableMove?: 'target' | 'refused'
 }
 
 /**
@@ -143,6 +144,7 @@ export function PlanTable({
   onGuestFocus,
   onGuestBlur,
   chairMove,
+  tableMove,
 }: PlanTableProps) {
   const occupancy = occupancyOf(occupants.guests.length, slot.capacity)
   const isPinned = occupants.pinnedCount > 0
@@ -269,6 +271,8 @@ export function PlanTable({
         variant="quiet"
         className={styles.face}
         aria-pressed={selected}
+        data-drop-table-id={slot.id}
+        data-move={tableMove}
         onClick={placing ? placing.onPlace : onSelect}
       >
         {placing && (

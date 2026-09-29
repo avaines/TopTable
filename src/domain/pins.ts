@@ -37,7 +37,7 @@ export function applySeatMove(pins: Pin[], move: SeatMove): Pin[] {
   const validAddress = (address: SeatAddress) => /^round-[1-9]\d*$/.test(address.tableId) && Number.isInteger(address.seatIndex) && address.seatIndex >= 0
   if (!validAddress(move.from) || !validAddress(move.to)) return pins
   const existing = pins.find((pin) => pin.guestId === move.guestId)
-  if (existing && (existing.tableId !== move.from.tableId || existing.seatIndex !== move.from.seatIndex)) return pins
+  if (existing && (existing.tableId !== move.from.tableId || (existing.seatIndex !== undefined && existing.seatIndex !== move.from.seatIndex))) return pins
   if (move.from.tableId === move.to.tableId && move.from.seatIndex === move.to.seatIndex) return pins
   if (move.displacedGuestId === move.guestId) return pins
   let next = pinGuestToSeat(pins, move.guestId, move.to)
