@@ -6,7 +6,7 @@ import { allocate } from '../allocate'
 import { PROTOCOL_ROLES } from '../types'
 import type { Guest, Pin, RoomConfig } from '../types'
 import type { SeatingPlan, SeatedTable } from '../seating'
-import { evaluateRegistered, registeredSeatGuard } from './registry'
+import { evaluateRegistered, evaluateRegisteredWithKitchenBriefs, registeredSeatGuard } from './registry'
 import { isPublishable, seatGuardFrom } from './engine'
 import type { GuardPlan, SeatingRule } from './contract'
 import { rule as partnerRule } from './partnersAdjacent.rule'
@@ -194,7 +194,7 @@ describe('TT-45: auto-allocation finds seating for couples', () => {
     const plan = solve({ roundTables: 2, seatsEach: 2, topTableSeats: 0 }, guests)
     expect(plan.unseated).toHaveLength(1)
     expect(plan.tables.flatMap((t) => t.seats).filter(Boolean)).toHaveLength(4)
-    expect(evaluateRegistered(plan).violations.filter((v) => v.severity === 'hard')).toEqual([])
+    expect(evaluateRegisteredWithKitchenBriefs(plan).report.violations.filter((v) => v.severity === 'hard')).toEqual([])
     expectConserved(plan, guests, [])
   })
 
@@ -204,7 +204,7 @@ describe('TT-45: auto-allocation finds seating for couples', () => {
     const guests = [...first, ...second, guest('solo-1'), guest('solo-2')]
     const plan = solve({ roundTables: 25, seatsEach: 8, topTableSeats: 0 }, guests)
     expect(plan.unseated).toHaveLength(2)
-    expect(evaluateRegistered(plan).violations.filter((v) => v.severity === 'hard')).toEqual([])
+    expect(evaluateRegisteredWithKitchenBriefs(plan).report.violations.filter((v) => v.severity === 'hard')).toEqual([])
     expectConserved(plan, guests, [])
   })
 
@@ -214,7 +214,7 @@ describe('TT-45: auto-allocation finds seating for couples', () => {
     const plan = solve({ roundTables: 10, seatsEach: 8, topTableSeats: 0 }, guests, pins)
     expect(plan.unseated.map((g) => g.id).sort()).toEqual(Array.from({ length: 80 }, (_, i) => `b-${i}`).sort())
     expect(plan.tables.flatMap((t) => t.seats).filter(Boolean)).toHaveLength(80)
-    expect(evaluateRegistered(plan).violations.filter((v) => v.severity === 'hard')).toEqual([])
+    expect(evaluateRegisteredWithKitchenBriefs(plan).report.violations.filter((v) => v.severity === 'hard')).toEqual([])
     expectConserved(plan, guests, pins)
   }, 2000)
 
@@ -231,7 +231,7 @@ describe('TT-45: auto-allocation finds seating for couples', () => {
     const plan = solve(fixture.meta.tables, fixture.guests)
     expect(plan.unseated).toEqual([])
     expect(pairsAdjacent(plan, fixture.guests)).toBe(true)
-    expect(evaluateRegistered(plan).violations.filter((v) => v.severity === 'hard')).toEqual([])
+    expect(evaluateRegisteredWithKitchenBriefs(plan).report.violations.filter((v) => v.severity === 'hard')).toEqual([])
     expectConserved(plan, fixture.guests, [])
     expect(solve(fixture.meta.tables, fixture.guests)).toEqual(plan)
   })

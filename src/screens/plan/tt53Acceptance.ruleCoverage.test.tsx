@@ -94,7 +94,7 @@ describe('TT-53 — the rule-coverage line, driven end to end through the real P
       await user.click(screen.getByRole('button', { name: 'Auto-allocate' }))
 
       // The real coverage, exactly as it reads today.
-      expect(document.body.textContent).toContain('4 of 10 rules built')
+      expect(document.body.textContent).toContain('5 of 10 rules built')
 
       // The violations panel's own "N rules registered" line, untouched by this ticket, reads
       // exactly what it always has. Matched on the paragraph's whole textContent rather than by
@@ -102,7 +102,7 @@ describe('TT-53 — the rule-coverage line, driven end to end through the real P
       // elements — and matched exactly rather than as a substring, which is what makes this the
       // guard that the panel gained no denominator of its own: any suffix fails it.
       const registeredLine = screen.getByText(
-        (_content, element) => element?.tagName === 'P' && element.textContent === '4 rules registered',
+        (_content, element) => element?.tagName === 'P' && element.textContent === '5 rules registered',
       )
       expect(registeredLine).toBeInTheDocument()
 
