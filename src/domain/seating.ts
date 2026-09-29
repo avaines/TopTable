@@ -89,7 +89,7 @@ export type SeatedTable = TableSlot & {
 export type SeatingPlan = {
   tables: readonly SeatedTable[]
   unseated: readonly Guest[]
-  /** Optional persisted/imported snapshot; normal evaluation refreshes this from seating. */
+  /** Derived snapshot used by evaluation and presentation; refresh with `withKitchenBriefs`. */
   kitchenBriefs?: readonly KitchenBrief[]
 }
 

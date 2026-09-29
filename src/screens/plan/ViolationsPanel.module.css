@@ -58,3 +58,6 @@
 [data-severity='soft'] .meta {
   color: var(--soft-deep);
 }
+.briefTableLabel {
+  font-weight: var(--weight-medium);
+}
