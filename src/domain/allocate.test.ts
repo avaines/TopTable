@@ -60,6 +60,28 @@ describe('allocate — the shape of a plan', () => {
       return !(seated.includes('c') && seated.includes('d'))
     })).toBe(true)
   })
+
+  it('backtracks an optional partner around coupled pinned conflicts', () => {
+    const room: RoomConfig = { roundTables: 1, seatsEach: 3, topTableSeats: 0 }
+    const guests = [
+      makeGuest('a', { partnerOf: 'b' }),
+      makeGuest('b', { partnerOf: 'a', conflictsWith: ['c'] }),
+      makeGuest('c', { partnerOf: 'd', conflictsWith: ['b'] }),
+      makeGuest('d', { partnerOf: 'c' }),
+    ]
+    const guard: SeatGuard = ({ plan, tableId, guest }) => {
+      const table = plan.tables.find((candidate) => candidate.id === tableId)
+      return !table?.seats.some((seat) => seat?.guest.conflictsWith.includes(guest.id) || guest.conflictsWith.includes(seat?.guest.id ?? ''))
+    }
+
+    const plan = allocate(room, guests, [
+      { guestId: 'a', tableId: 'round-1' },
+      { guestId: 'c', tableId: 'round-1' },
+    ], { allowSeat: guard })
+
+    expect(plan.tables[0]?.seats.filter(Boolean).map((seat) => seat!.guest.id)).toEqual(['a', 'c', 'd'])
+    expect(plan.unseated.map((guest) => guest.id)).toEqual(['b'])
+  })
   it('produces one table per slot tablesInRoom would generate for the same room, in the same order', () => {
     const room: RoomConfig = { roundTables: 2, seatsEach: 4, topTableSeats: 4 }
     const guests = [makeGuest('g-1'), makeGuest('g-2')]
@@ -578,7 +600,7 @@ describe('allocate — the fill consults a caller-supplied guard', () => {
     expect(plan.unseated.map((guest) => guest.id)).toEqual(['ordinary-1', 'ordinary-2'])
   })
 
-  it('a recording guard sees the candidate table fill up as the pass proceeds, and every candidate carries a 0-based seat index', () => {
+    it('a recording guard receives valid seat indices during search and backtracking', () => {
     const room: RoomConfig = { roundTables: 1, seatsEach: 4, topTableSeats: 0 }
     const guests = [makeGuest('g-1'), makeGuest('g-2'), makeGuest('g-3')]
     const seatedIds = new Set(guests.map((guest) => guest.id))
@@ -602,9 +624,8 @@ describe('allocate — the fill consults a caller-supplied guard', () => {
       const table = candidate.plan.tables.find((t) => t.id === 'round-1')
       return table?.seats.filter((seat) => seat !== null).length ?? 0
     })
-    const sorted = [...occupiedCounts].sort((a, b) => a - b)
-    expect(occupiedCounts).toEqual(sorted)
-    expect(occupiedCounts.at(-1)).toBe(3)
+    expect(occupiedCounts.every((count) => count <= 3)).toBe(true)
+    expect(Math.max(...occupiedCounts)).toBe(3)
     expect(plan.unseated).toEqual([])
   })
 })
