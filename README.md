@@ -167,3 +167,13 @@ hackathon day that is not hypothetical.
 | [`AGENTS.md`](AGENTS.md) | The entry point. How to reach the requirements, the ground rules, the agents |
 | [`docs/`](docs/README.md) | Engineering standards, state and persistence, git and releases |
 | [`docs/style-guide.html`](docs/style-guide.html) | The brand, as a working page. Open it in a browser |
+
+
+## VS Code MCP Setup
+
+* Open VS Code, go to File → Open Folder and open the workshop folder
+* Press Ctrl+Shift+P to open the command palette and run MCP: Add Server
+* Choose HTTP as the server type
+* Paste the URL: `https://tickety.enablis.tech/mcp`
+* Name it tickety
+* Choose Workspace
