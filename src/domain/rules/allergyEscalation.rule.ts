@@ -25,8 +25,12 @@ export const rule: SeatingRule = {
       if (guest.allergies.length === 0) return false
       const location = seated.get(guest.id)
       if (!location) return true
-      const briefGuest = briefs.get(location.tableId)?.guests.find((entry) => entry.id === guest.id)
-      return !briefGuest || briefGuest.name !== guest.name || briefGuest.allergies.length !== guest.allergies.length || briefGuest.allergies.some((allergy) => !guest.allergies.includes(allergy))
+      const brief = briefs.get(location.tableId)
+      const briefGuest = brief?.guests.find((entry) => entry.id === guest.id)
+      if (!brief || brief.tableLabel !== location.tableLabel || !briefGuest || briefGuest.name !== guest.name) return true
+      const actualAllergies = [...new Set(guest.allergies)].sort()
+      const briefAllergies = [...new Set(briefGuest.allergies)].sort()
+      return actualAllergies.length !== briefAllergies.length || actualAllergies.some((allergy, index) => allergy !== briefAllergies[index])
     })
     const byTable = new Map<string, { label: string; guests: Guest[] }>()
     for (const guest of missedGuests) {

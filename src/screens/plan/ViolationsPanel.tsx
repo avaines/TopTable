@@ -89,7 +89,7 @@ export function ViolationsPanel({ report, kitchenBriefs = [] }: ViolationsPanelP
           <h3>Kitchen briefs</h3>
           {kitchenBriefs.map((brief) => (
             <div key={brief.tableId} className={styles.brief}>
-              <strong>{brief.tableLabel}</strong>
+              <strong className={styles.briefTableLabel}>{brief.tableLabel}</strong>
               {brief.guests.map((guest) => <p key={guest.id}>{guest.name}: {guest.allergies.join(', ')}</p>)}
             </div>
           ))}
