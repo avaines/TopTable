@@ -8,7 +8,7 @@ import {
   removeGuest as domainRemoveGuest,
   updateGuest as domainUpdateGuest,
 } from '../domain/guests'
-import { pinGuest as domainPinGuest, unpinGuest as domainUnpinGuest } from '../domain/pins'
+import { applySeatMove, pinGuest as domainPinGuest, unpinGuest as domainUnpinGuest, type SeatMove } from '../domain/pins'
 
 /**
  * The single store. It holds the event, the room config, the guest list, which scenario (if
@@ -19,8 +19,8 @@ import { pinGuest as domainPinGuest, unpinGuest as domainUnpinGuest } from '../d
  * data plus the rules, and they arrive with their own tickets. A pin is a human decision, not
  * a derivation (TT-12), so unlike those it is stored.
  *
- * The write surface is eleven actions: setEventName, setRoom, setGuests, importScenario, reset,
- * addGuest, updateGuest, removeGuest, pinGuest, unpinGuest and clearPins. addGuest, updateGuest
+ * The write surface is thirteen actions: setEventName, setRoom, setGuests, importScenario, reset,
+ * addGuest, updateGuest, removeGuest, pinGuest, moveGuest, restorePins, unpinGuest and clearPins. addGuest, updateGuest
  * and removeGuest are thin delegates onto `src/domain/guests.ts`; pinGuest and unpinGuest the
  * same onto `src/domain/pins.ts` — none of that behaviour is improvised here. clearPins (TT-37)
  * is not a delegate: emptying a list owns no behaviour worth a domain function of its own.
@@ -64,6 +64,8 @@ export type TopTableActions = {
   removeGuest: (id: string) => void
   /** Places a guest at a table, replacing any pin they already held (TT-12). See `src/domain/pins.ts`. */
   pinGuest: (guestId: string, tableId: string) => void
+  moveGuest: (move: SeatMove) => void
+  restorePins: (pins: Pin[]) => void
   /** Releases a guest's pin, if they hold one (TT-12). See `src/domain/pins.ts`. */
   unpinGuest: (guestId: string) => void
   /** Empties every pin (TT-37). Not a domain delegate: there is no behaviour here to own. */
@@ -181,6 +183,9 @@ export const useTopTableStore = create<TopTableStore>()(
 
       pinGuest: (guestId, tableId) =>
         set((state) => ({ pins: domainPinGuest(state.pins, guestId, tableId) })),
+
+      moveGuest: (move) => set((state) => ({ pins: applySeatMove(state.pins, move) })),
+      restorePins: (pins) => set({ pins }),
 
       unpinGuest: (guestId) => set((state) => ({ pins: domainUnpinGuest(state.pins, guestId) })),
 

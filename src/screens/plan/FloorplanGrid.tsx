@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react'
+import type { ChairMoveProps } from './chairAddress'
 import type { RoomConfig } from '../../domain/types'
 import { tablesInRoom } from '../../domain/seating'
 import { occupantsAt, type SeatingView } from './floorplan'
@@ -26,6 +27,8 @@ type FloorplanGridProps = {
   onGuestHoverEnd?: (guestId: string) => void
   onGuestFocus?: (guestId: string, element: Element) => void
   onGuestBlur?: (guestId: string) => void
+  chairMoveFor?: (tableId: string) => ChairMoveProps | undefined
+  tableMoveFor?: (tableId: string) => 'target' | 'refused' | undefined
 }
 
 type GridStyle = CSSProperties & { '--floorplan-columns': number; '--table-size': string }
@@ -59,6 +62,8 @@ export function FloorplanGrid({
   onGuestHoverEnd,
   onGuestFocus,
   onGuestBlur,
+  chairMoveFor,
+  tableMoveFor,
 }: FloorplanGridProps) {
   const slots = tablesInRoom(room)
   const topSlot = slots.find((slot) => slot.kind === 'top')
@@ -93,6 +98,8 @@ export function FloorplanGrid({
             onGuestHoverEnd={onGuestHoverEnd}
             onGuestFocus={onGuestFocus}
             onGuestBlur={onGuestBlur}
+            chairMove={chairMoveFor?.(topSlot.id)}
+            tableMove={tableMoveFor?.(topSlot.id)}
           />
         </ul>
       )}
@@ -124,6 +131,8 @@ export function FloorplanGrid({
                 onGuestHoverEnd={onGuestHoverEnd}
                 onGuestFocus={onGuestFocus}
                 onGuestBlur={onGuestBlur}
+                chairMove={chairMoveFor?.(slot.id)}
+                tableMove={tableMoveFor?.(slot.id)}
               />
             ))}
           </ul>

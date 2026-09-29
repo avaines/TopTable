@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { pinGuest, pinnedTableFor, unpinGuest } from './pins'
+import { applySeatMove, pinGuest, pinGuestToSeat, pinnedTableFor, unpinGuest } from './pins'
+import type { SeatMove } from './pins'
 import type { Pin } from './types'
 
 /**
@@ -167,5 +168,51 @@ describe('purity', () => {
 
     expect(pins).toEqual(snapshot)
     expect(pinnedTableFor(pins, 'g-1')).toBe(first)
+  })
+})
+
+describe('TT-23 exact seat pins', () => {
+  const move = (overrides: Partial<SeatMove> = {}): SeatMove => ({
+    guestId: 'g-1',
+    from: { tableId: 'round-1', seatIndex: 0 },
+    to: { tableId: 'round-2', seatIndex: 3 },
+    ...overrides,
+  })
+
+  it('adds and replaces one exact seat pin without mutating or reordering other pins', () => {
+    const pins = [{ guestId: 'g-1', tableId: 'round-1' }, { guestId: 'g-2', tableId: 'round-3' }]
+    const result = pinGuestToSeat(pins, 'g-1', { tableId: 'round-2', seatIndex: 3 })
+    expect(result).toEqual([
+      { guestId: 'g-1', tableId: 'round-2', seatIndex: 3 },
+      { guestId: 'g-2', tableId: 'round-3' },
+    ])
+    expect(pins).toEqual([{ guestId: 'g-1', tableId: 'round-1' }, { guestId: 'g-2', tableId: 'round-3' }])
+  })
+
+  it('moves to an empty seat by changing only the mover pin', () => {
+    const pins = [{ guestId: 'g-1', tableId: 'round-1', seatIndex: 0 }, { guestId: 'g-3', tableId: 'round-3', seatIndex: 2 }]
+    expect(applySeatMove(pins, move())).toEqual([
+      { guestId: 'g-1', tableId: 'round-2', seatIndex: 3 },
+      { guestId: 'g-3', tableId: 'round-3', seatIndex: 2 },
+    ])
+  })
+
+  it('swaps an occupied target with exactly two exact pins and keeps unrelated pin identity/order', () => {
+    const other = { guestId: 'g-3', tableId: 'round-3', seatIndex: 2 }
+    const pins = [{ guestId: 'g-1', tableId: 'round-1', seatIndex: 0 }, { guestId: 'g-2', tableId: 'round-2', seatIndex: 3 }, other]
+    const result = applySeatMove(pins, move({ displacedGuestId: 'g-2' }))
+    expect(result).toEqual([
+      { guestId: 'g-1', tableId: 'round-2', seatIndex: 3 },
+      { guestId: 'g-2', tableId: 'round-1', seatIndex: 0 },
+      other,
+    ])
+    expect(result[2]).toBe(other)
+  })
+
+  it('returns the same pin array for a no-op and rejects stale or invalid addresses', () => {
+    const pins = [{ guestId: 'g-1', tableId: 'round-1', seatIndex: 0 }]
+    expect(applySeatMove(pins, move({ to: { tableId: 'round-1', seatIndex: 0 } }))).toBe(pins)
+    expect(applySeatMove(pins, move({ from: { tableId: 'round-9', seatIndex: 0 } }))).toBe(pins)
+    expect(applySeatMove(pins, move({ to: { tableId: 'top', seatIndex: 0 } }))).toBe(pins)
   })
 })

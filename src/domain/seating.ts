@@ -286,6 +286,31 @@ export function resolveHonouredPins(
   return byGuestId
 }
 
+export type ExactSeat = { tableId: string; seatIndex: number }
+
+/** Last valid exact round-chair pin for each known guest. */
+export function resolveHonouredSeats(
+  slots: readonly TableSlot[],
+  guests: readonly Guest[],
+  pins: readonly Pin[],
+): Map<string, ExactSeat> {
+  const tables = new Map(slots.map((slot) => [slot.id, slot]))
+  const guestIds = new Set(guests.map((guest) => guest.id))
+  const effective = new Map<string, Pin>()
+  for (const pin of pins) {
+    const table = tables.get(pin.tableId)
+    if (guestIds.has(pin.guestId) && table) effective.set(pin.guestId, pin)
+  }
+  const exact = new Map<string, ExactSeat>()
+  for (const [guestId, pin] of effective) {
+    const table = tables.get(pin.tableId)
+    if (table?.kind === 'round' && Number.isInteger(pin.seatIndex) && pin.seatIndex! >= 0 && pin.seatIndex! < table.capacity) {
+      exact.set(guestId, { tableId: pin.tableId, seatIndex: pin.seatIndex! })
+    }
+  }
+  return exact
+}
+
 /**
  * `tables` always has an entry for every id drawn from `slots`; this documents that rather than
  * asserting past it. Generic and exported so `allocate.ts`'s mutable `BuildingTable` map and this
@@ -315,22 +340,60 @@ export function seatPins(room: RoomConfig, guests: Guest[], pins: Pin[]): Seatin
 
   const unseated: Guest[] = []
 
+  // The last pin naming a known guest and real table wins. An invalid seat index on that pin
+  // falls back to ordinary table placement; a stale table id is ignored entirely.
+  const latestValidPin = new Map<string, Pin>()
+  const validGuestIds = new Set(guests.map((guest) => guest.id))
+  for (const pin of pins) {
+    const table = tables.get(pin.tableId)
+    if (validGuestIds.has(pin.guestId) && table) latestValidPin.set(pin.guestId, pin)
+  }
+
+  // Reserve valid exact round seats first so legacy table pins cannot take them.
+  const exact = new Map<string, number>()
   for (const guest of guests) {
+    const pin = latestValidPin.get(guest.id)
+    const table = pin && tables.get(pin.tableId)
+    if (pin && table?.kind === 'round' && Number.isInteger(pin.seatIndex) && pin.seatIndex! >= 0 && pin.seatIndex! < table.capacity) {
+      exact.set(guest.id, pin.seatIndex!)
+    }
+  }
+
+  const placed = new Set<string>()
+  const place = (guest: Guest, tableId: string, requested?: number) => {
+    const table = tableFor(tables, tableId)
+    const seats = table.seats.slice()
+    const freeIndex = requested !== undefined && seats[requested] === null
+      ? requested
+      : seats.findIndex((seat) => seat === null)
+    if (freeIndex === -1) tables.set(tableId, { ...table, overflow: [...table.overflow, { guest, pinned: true }] })
+    else {
+      seats[freeIndex] = { guest, pinned: true }
+      tables.set(tableId, { ...table, seats })
+    }
+    placed.add(guest.id)
+  }
+
+  // Exact winners claim their chairs before any table-only pin can consume one. Collisions are
+  // resolved in guest-list order; a loser takes the first remaining chair or overflows.
+  const claimedExact = new Set<string>()
+  for (const guest of guests) {
+    const tableId = honoured.get(guest.id)
+    const requested = exact.get(guest.id)
+    const key = tableId !== undefined && requested !== undefined ? `${tableId}:${requested}` : null
+    if (key && !claimedExact.has(key)) {
+      place(guest, tableId!, requested)
+      claimedExact.add(key)
+    }
+  }
+  for (const guest of guests) {
+    if (placed.has(guest.id)) continue
     const tableId = honoured.get(guest.id)
     if (tableId === undefined) {
       unseated.push(guest)
       continue
     }
-
-    const table = tableFor(tables, tableId)
-    const seats = table.seats.slice()
-    const freeIndex = seats.findIndex((seat) => seat === null)
-    if (freeIndex === -1) {
-      tables.set(tableId, { ...table, overflow: [...table.overflow, { guest, pinned: true }] })
-    } else {
-      seats[freeIndex] = { guest, pinned: true }
-      tables.set(tableId, { ...table, seats })
-    }
+    place(guest, tableId)
   }
 
   return { tables: slots.map((slot) => tableFor(tables, slot.id)), unseated }

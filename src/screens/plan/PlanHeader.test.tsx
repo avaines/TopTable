@@ -6,6 +6,7 @@ import { NOTHING_SEATED } from './floorplan'
 import type { SeatedGuest, SeatingView, TableOccupants } from './floorplan'
 import type { Guest, RoomConfig } from '../../domain/types'
 import type { ScenarioState } from '../../store/store'
+import { REGISTERED_RULES } from '../../domain/rules/registry'
 
 /**
  * TT-35, KB-6 "Plan". `PlanHeader` becomes the canvas header — a capacity headline ("78 seats
@@ -972,7 +973,7 @@ describe('PlanHeader — the coverage line beside the score (TT-53)', () => {
         publishable={true}
       />,
     )
-    expect(container.textContent).toContain('5 of 10 rules built')
+    expect(container.textContent).toContain(`${REGISTERED_RULES.length} of 10 rules built`)
   })
 
   it('reads the coverage line after the stat row and before the publishability line', () => {
@@ -992,8 +993,8 @@ describe('PlanHeader — the coverage line beside the score (TT-53)', () => {
     // above the stat row — where TT-53 does not want it — and this test would stay green.
     const text = container.textContent ?? ''
     expect(text).toContain('Can be published')
-    expect(text.indexOf('Unseated')).toBeLessThan(text.indexOf('5 of 10 rules built'))
-    expect(text.indexOf('5 of 10 rules built')).toBeLessThan(text.indexOf('Can be published'))
+    expect(text.indexOf('Unseated')).toBeLessThan(text.indexOf(`${REGISTERED_RULES.length} of 10 rules built`))
+    expect(text.indexOf(`${REGISTERED_RULES.length} of 10 rules built`)).toBeLessThan(text.indexOf('Can be published'))
   })
 
   it('with "Nothing to score" there is no coverage line', () => {

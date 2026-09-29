@@ -74,7 +74,10 @@
   flex: 1;
   min-height: 188px;
   padding: var(--s-5) var(--s-6);
+  user-select: none;
 }
+
+.floorplanArea[data-moving='true'], .floorplanArea[data-moving='true'] * { cursor: grabbing; }
 
 /* overflow-y/min-height are the same fix `.canvas` above carries, on the column that did not
    need it until TT-53's rule list gave this one ~240px of height on every plan, clean or not.

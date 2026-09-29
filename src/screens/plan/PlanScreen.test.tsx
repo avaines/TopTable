@@ -7,6 +7,7 @@ import { useTopTableStore } from '../../store/store'
 import type { Guest } from '../../domain/types'
 import { PROTOCOL_ROLES } from '../../domain/types'
 import { NavigationContext } from '../../shell/navigation'
+import { REGISTERED_RULES } from '../../domain/rules/registry'
 
 /**
  * TT-11, "Render the floorplan from config". Written from the acceptance criteria and KB-6,
@@ -121,7 +122,7 @@ function renderPlanScreen(goTo: (tab: string) => void = () => {}) {
   )
 }
 
-// The store's full key set today: five data fields plus eleven actions (TT-37 added
+// The store's full key set today: five data fields plus thirteen actions (TT-23 added
 // clearPins). Asserting the exact set, not a substring scan, is what catches a future
 // seat/plan/violation key creeping in.
 const EXPECTED_STORE_KEYS = [
@@ -139,6 +140,8 @@ const EXPECTED_STORE_KEYS = [
   'updateGuest',
   'removeGuest',
   'pinGuest',
+  'moveGuest',
+  'restorePins',
   'unpinGuest',
   'clearPins',
 ].sort()
@@ -1345,7 +1348,7 @@ describe('PlanScreen — the violations panel is the third column, beside the ra
     expect(screen.getByRole('heading', { name: 'Unseated' })).toBeInTheDocument()
     expect(tables().length).toBeGreaterThan(0)
     // Capacity, everyone-seated (TT-47), partners adjacent and top table.
-    expect(document.body.textContent).toContain('5 rules registered')
+    expect(document.body.textContent).toContain(`${REGISTERED_RULES.length} rules registered`)
   })
 
   // TT-47 (KB-2, "A guest with no seat is a violation wherever the room still has an empty seat"):

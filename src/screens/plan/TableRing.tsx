@@ -10,6 +10,7 @@ import {
   selectionArcEndpoints,
 } from './ringGeometry'
 import styles from './TableRing.module.css'
+import type { ChairMoveProps } from './chairAddress'
 
 type TableRingProps = {
   seats: number
@@ -122,6 +123,8 @@ type TableRingSeatsProps = {
    * all — every chair renders with no `aria-describedby`. */
   summaryGuestId: string | null
   summaryId?: string
+  tableId: string
+  chairMove?: ChairMoveProps
 }
 
 /**
@@ -163,6 +166,8 @@ export function TableRingSeats({
   onSeatClick,
   summaryGuestId,
   summaryId,
+  tableId,
+  chairMove,
 }: TableRingSeatsProps) {
   const showChairs = chairsVisibleAt(seats, tableSize)
   if (!showChairs) return null
@@ -180,17 +185,21 @@ export function TableRingSeats({
         const guestId = seatGuestIds[chair.seatIndex] ?? null
         const guest = guestsBySeat[chair.seatIndex] ?? null
         return (
+          <g key={chair.seatIndex}>
+          {chairMove?.marks[chair.seatIndex] === 'target' && <circle className={styles.moveHalo} cx={chair.cx} cy={chair.cy} r={chairSize + 2} aria-hidden="true" />}
           <circle
-            key={chair.seatIndex}
             className={guestId !== null ? styles.chairOccupied : styles.chairEmpty}
             cx={chair.cx}
             cy={chair.cy}
             r={chairSize}
             data-seat-index={chair.seatIndex}
+            data-table-id={tableId}
+            data-move={chairMove?.marks[chair.seatIndex]}
+            data-movable={chairMove?.hintId && guestId !== null ? 'true' : undefined}
             data-guest-id={guestId ?? undefined}
             role="img"
             aria-label={chairLabel(chair.seatIndex, guest)}
-            aria-describedby={guestId !== null && summaryId && guestId === summaryGuestId ? summaryId : undefined}
+            aria-describedby={guestId !== null ? [summaryId && guestId === summaryGuestId ? summaryId : '', chairMove?.hintId ?? ''].filter(Boolean).join(' ') || undefined : undefined}
             tabIndex={chair.seatIndex === activeSeatIndex ? 0 : -1}
             onFocus={(event) => onSeatFocus(chair.seatIndex, event.currentTarget)}
             onBlur={onSeatBlur}
@@ -199,6 +208,7 @@ export function TableRingSeats({
             onMouseLeave={() => onSeatHoverEnd(chair.seatIndex)}
             onClick={onSeatClick}
           />
+          </g>
         )
       })}
     </svg>
