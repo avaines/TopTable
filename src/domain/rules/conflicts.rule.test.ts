@@ -41,4 +41,13 @@ describe('conflicts rule', () => {
     expect(result.findings[0]?.guestIds).toEqual(['a', 'b'])
     expect(result.findings[0]?.tableIds).toEqual(['round-1'])
   })
+
+  it('counts an unseated member as a missed opportunity without inventing a table finding', () => {
+    const a = guest('a', ['b'])
+    const b = guest('b', ['a'])
+    const result = rule.evaluate({ tables: [table('round-1', [a])], unseated: [b] })
+
+    expect(result).toMatchObject({ opportunities: 1, missed: 1 })
+    expect(result.findings).toEqual([])
+  })
 })
