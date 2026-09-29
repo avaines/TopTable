@@ -4,24 +4,6 @@ import type { RulePlan } from './contract'
 import type { Seat, SeatedTable } from '../seating'
 import type { Guest } from '../types'
 
-/**
- * TT-14's partners-adjacent rule (KB-2 soft constraints: "next to each other, not merely at the
- * same table"). Adjacency is TT-13's: a ring on a round table, a line on the top table. Written
- * from TT-14's acceptance criteria, KB-2 and KB-3. Does not open partnersAdjacent.rule.ts.
- *
- * TT-16: `evaluate` now returns `{ findings, opportunities, missed }` rather than a bare array.
- * This is the one soft rule registered today, so it is the one whose counts actually reach the
- * score.
- *
- * Three separate jobs, per the contract's own doc comment: `findings` is what is wrong with the
- * seating as it stands; `opportunities` is how many partner pairs are on the guest list at all —
- * a property of who is on the list, never of how much of the plan is filled in; `missed` is how
- * many of those pairs are not seated adjacent, whether that is because they are seated apart (a
- * finding) or not seated together at all (a miss with nothing to show in the violations panel). A
- * pair only counts once it can be resolved to two actual guests — seated, in overflow, or in the
- * plan's own `unseated` list — never from a dangling `partnerOf` naming nobody the plan knows.
- */
-
 function makeGuest(id: string, overrides: Partial<Guest> = {}): Guest {
   return {
     id,
@@ -109,15 +91,14 @@ describe('partners adjacent — quiet when they are actually next to each other 
     expect(partnersAdjacentRule.evaluate({ tables: [table], unseated: [] }).findings).toEqual([])
   })
 
-  it('the same placement at the top table is NOT quiet — the top table is a line, so its two ends do not wrap', () => {
+  it('the top table is exempt even when its two ends are not adjacent', () => {
     const a = makeGuest('a', { partnerOf: 'b' })
     const b = makeGuest('b', { partnerOf: 'a' })
     const table = makeTable('top', 'top', 8, { 7: a, 0: b })
 
     const { findings } = partnersAdjacentRule.evaluate({ tables: [table], unseated: [] })
 
-    expect(findings).toHaveLength(1)
-    expect(sortedIds(findings[0]?.guestIds ?? [])).toEqual(['a', 'b'])
+    expect(findings).toEqual([])
   })
 })
 

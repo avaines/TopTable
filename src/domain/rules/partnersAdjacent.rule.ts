@@ -1,10 +1,10 @@
 import type { Guest } from '../types'
 import type { SeatedTable } from '../seating'
 import { adjacentSeats } from '../seating'
-import type { Finding, RulePlan, SeatingRule } from './contract'
+import type { Finding, GuardPlan, RulePlan, SeatingRule } from './contract'
 
 /**
- * KB-2, soft: partners should sit next to each other, "not merely at the same table".
+ * KB-2, hard: partners must sit next to each other, "not merely at the same table".
  *
  * `opportunities` counts every partner pair on the guest list, seated or not — never a function
  * of how much of the plan is filled in (TT-16; see `RuleAssessment` in `contract.ts`). A pair
@@ -78,56 +78,66 @@ function knownGuestsById(plan: RulePlan): Map<string, Guest> {
   return guests
 }
 
-export const rule = {
-  id: 'partners-adjacent',
-  severity: 'soft',
-  remedy: 'seating',
-  description: 'Partners should sit next to each other, not merely at the same table',
-  evaluate: (plan) => {
-    const guests = knownGuestsById(plan)
-    const locations = locationsByGuestId(plan.tables)
-    const findings: Finding[] = []
-    const reportedPairs = new Set<string>()
-    let opportunities = 0
-    let missed = 0
+function assess(plan: GuardPlan, guests: ReadonlyMap<string, Guest>) {
+  const locations = locationsByGuestId(plan.tables)
+  const findings: Finding[] = []
+  const reportedPairs = new Set<string>()
+  let opportunities = 0
+  let missed = 0
 
-    for (const guest of guests.values()) {
-      const { partnerOf } = guest
-      if (partnerOf === null) continue
+  for (const guest of guests.values()) {
+    const { partnerOf } = guest
+    if (partnerOf === null) continue
 
-      // Sorted, not `a.id < b.id`-gated: a one-sided `partnerOf` (KB-3 asks writers to keep both
-      // sides in step, but storage is not a trusted input) must still be counted once, not
-      // silently dropped whenever the lone id happens to sort second.
-      const pairKey = [guest.id, partnerOf].sort().join('::')
-      if (reportedPairs.has(pairKey)) continue
-      reportedPairs.add(pairKey)
+    // Sorted, not `a.id < b.id`-gated: a one-sided `partnerOf` (KB-3 asks writers to keep both
+    // sides in step, but storage is not a trusted input) must still be counted once, not
+    // silently dropped whenever the lone id happens to sort second.
+    const pairKey = [guest.id, partnerOf].sort().join('::')
+    if (reportedPairs.has(pairKey)) continue
+    reportedPairs.add(pairKey)
 
-      const partner = guests.get(partnerOf)
-      if (!partner) continue // the named partner is not on this guest list at all
+    const partner = guests.get(partnerOf)
+    if (!partner) continue // the named partner is not on this guest list at all
 
-      // Every pair this guest list contains is one opportunity, seated or not — the fix to the
-      // defect this file used to have, where an unseated pair cost the score nothing.
-      opportunities += 1
+    if (locations.get(guest.id)?.table.kind === 'top' || locations.get(partner.id)?.table.kind === 'top') continue
+    opportunities += 1
 
-      const guestSeat = seatedLocation(locations.get(guest.id))
-      const partnerSeat = seatedLocation(locations.get(partner.id))
+    const guestSeat = seatedLocation(locations.get(guest.id))
+    const partnerSeat = seatedLocation(locations.get(partner.id))
 
-      if (!guestSeat || !partnerSeat) {
-        // At least one partner has no real seat — unseated or overflow, the same fact. A chance
-        // this plan did not take, not a fault in the seating it did make, so no Finding.
-        missed += 1
-        continue
-      }
-
-      if (!isAdjacent(guestSeat, partnerSeat)) {
-        missed += 1
-        findings.push(findingFor(guest, guestSeat, partner, partnerSeat))
-      }
+    if (!guestSeat || !partnerSeat) {
+      // At least one partner has no real seat — unseated or overflow, the same fact. A chance
+      // this plan did not take, not a fault in the seating it did make, so no Finding.
+      missed += 1
+      continue
     }
 
-    // findings.length <= missed <= opportunities holds structurally: each pair increments
-    // opportunities at most once, then missed at most once, and findings only inside the branch
-    // that also just incremented missed — never the reverse.
-    return { findings, opportunities, missed }
+    if (!isAdjacent(guestSeat, partnerSeat)) {
+      missed += 1
+      findings.push(findingFor(guest, guestSeat, partner, partnerSeat))
+    }
+  }
+
+  // findings.length <= missed <= opportunities holds structurally: each pair increments
+  // opportunities at most once, then missed at most once, and findings only inside the branch
+  // that also just incremented missed — never the reverse.
+  return { findings, opportunities, missed }
+}
+
+export const rule = {
+  id: 'partners-adjacent',
+  severity: 'hard',
+  remedy: 'seating',
+  relaxWhenInfeasible: true,
+  description: 'Partners must sit next to each other, not merely at the same table',
+  evaluate: (plan: RulePlan) => assess(plan, knownGuestsById(plan)),
+  evaluatePlacement: (plan: GuardPlan) => {
+    const guests = new Map<string, Guest>()
+    for (const table of plan.tables) {
+      for (const seat of [...table.seats, ...table.overflow]) {
+        if (seat) guests.set(seat.guest.id, seat.guest)
+      }
+    }
+    return assess(plan, guests).findings
   },
 } satisfies SeatingRule

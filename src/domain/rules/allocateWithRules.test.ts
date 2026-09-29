@@ -9,13 +9,6 @@ import { PROTOCOL_ROLES } from '../types'
 import type { Guest, Pin, RoomConfig } from '../types'
 import type { ScenarioId } from '../scenarios'
 
-/**
- * TT-14's "no change to the placement code" claim (TT-14; KB-1: "Auto-allocate satisfies the hard
- * ones"), made checkable: wiring the registered rules' guard into the solver must not change a
- * single placement `allocate` makes. Written from TT-14's acceptance criteria. Does not open
- * registry.ts or any rule file.
- */
-
 function makeGuest(id: string, overrides: Partial<Guest> = {}): Guest {
   return {
     id,
@@ -51,16 +44,16 @@ function readScenario(id: ScenarioId): ScenarioFixture {
   return JSON.parse(readFileSync(path, 'utf8')) as ScenarioFixture
 }
 
-describe('allocate with the registered rules wired in produces exactly the plan allocate would without them (TT-14, A10)', () => {
+describe('allocate with registered hard rules satisfies feasible scenarios (TT-45)', () => {
   it.each(['small-and-cosy', 'adding-up', 'celebrity-scale'] as const)(
-    '%s: identical plans, with and without the guard',
+    '%s: complete, deterministic plans with no hard violations',
     (id) => {
       const { meta, guests } = readScenario(id)
 
       const withRules = allocate(meta.tables, guests, [], { allowSeat: registeredSeatGuard() })
-      const withoutRules = allocate(meta.tables, guests, [])
-
-      expect(withRules).toEqual(withoutRules)
+      expect(withRules.unseated).toEqual([])
+      expect(hardViolations(evaluateRegistered(withRules))).toEqual([])
+      expect(withRules).toEqual(allocate(meta.tables, guests, [], { allowSeat: registeredSeatGuard() }))
     },
   )
 
@@ -68,13 +61,11 @@ describe('allocate with the registered rules wired in produces exactly the plan 
     const { meta, guests } = readScenario('small-and-cosy')
 
     const withRules = allocate(meta.tables, guests, [], { allowSeat: registeredSeatGuard() })
-    const withoutRules = allocate(meta.tables, guests, [])
-
-    expect(withRules).toEqual(withoutRules)
+    expect(hardViolations(evaluateRegistered(withRules))).toEqual([])
     expect(withRules.unseated).toEqual([])
   })
 
-  it('holds for a hand-built room with pins and a full set of protocol roles, not only the three shipped scenarios', () => {
+  it('no-partner allocation stays identical with and without the guard, including pins and protocol roles', () => {
     const room: RoomConfig = { roundTables: 2, seatsEach: 4, topTableSeats: 8 }
     const protocolGuests = PROTOCOL_ROLES.map((role, i) => makeGuest(`protocol-${i}`, { role }))
     const fillers = Array.from({ length: 6 }, (_, i) => makeGuest(`filler-${i + 1}`))

@@ -1,3 +1,4 @@
+import { seatPartners } from './partnerPlacement'
 import type { Guest, Pin, ProtocolRole, RoomConfig } from './types'
 import { PROTOCOL_ROLES } from './types'
 import type { Seat, SeatingPlan, TableSlot } from './seating'
@@ -26,7 +27,10 @@ export type SeatCandidate = {
 }
 
 /** Asked before the fill takes a seat. `true` allows it. TT-14 supplies the rules-backed one. */
-export type SeatGuard = (candidate: SeatCandidate) => boolean
+export type SeatGuard = ((candidate: SeatCandidate) => boolean) & {
+  /** Used only after partner placement cannot fill the usable seats without a hard fault. */
+  whenInfeasible?: (candidate: SeatCandidate) => boolean
+}
 
 export type AllocateOptions = {
   /** Defaults to allowing every seat, which is what "no rules registered yet" means. */
@@ -271,13 +275,10 @@ function fillRemainingGuests(
 const allowEverySeat: SeatGuard = () => true
 
 /**
- * Seats the top table — a guest's own pin to it first, KB-4's protocol roles into whatever
- * remains — then honours pins to a round table, then the top table's overflow roles together,
- * then fills what is left. Phases 1-2 never call `allowSeat`: a pin and the protocol order are
- * positions KB-4 or a human already fixed (see this file's own guard tests). Phase 3 calls it
- * only to prefer a destination for the overflow block, with a documented fallback
- * (`seatProtocolOverflowBlock`); phase 4 asks per guest, per seat. Deterministic and pure: every
- * phase walks a fixed order, and neither `guests` nor `pins` is written to.
+ * Protocol fixes the top table first. Nonexempt couples are then placed as adjacent units,
+ * with pins restricting tables and omitted protocol roles kept together. If no maximally seated layout
+ * exists, honour pins and fill usable seats with only explicitly relaxable guard rules lifted;
+ * their hard findings remain visible. Guest lists without couples retain the ordinary fill.
  */
 export function allocate(room: RoomConfig, guests: Guest[], pins: Pin[], options?: AllocateOptions): SeatingPlan {
   const allowSeat = options?.allowSeat ?? allowEverySeat
@@ -306,12 +307,14 @@ export function allocate(room: RoomConfig, guests: Guest[], pins: Pin[], options
   // together" treatment.
   const includedRoles = topSlot ? seatTopTable(tableFor(tables, topSlot.id), guests, honoured, seatedGuestIds) : []
 
-  seatHonouredRoundPins(tables, guests, honoured, seatedGuestIds)
-
   const omittedRoles = PROTOCOL_ROLES.filter((role) => !includedRoles.includes(role))
-  seatProtocolOverflowBlock(tables, roundSlots, guests, omittedRoles, seatedGuestIds, allowSeat, planSoFar)
+  const partnerResult = seatPartners(planSoFar.tables, guests, honoured, omittedRoles, allowSeat)
+  if (partnerResult) return partnerResult
 
-  const unseated = fillRemainingGuests(tables, roundSlots, guests, seatedGuestIds, allowSeat, planSoFar)
+  seatHonouredRoundPins(tables, guests, honoured, seatedGuestIds)
+  const fallbackGuard = partnerResult === null ? allowSeat.whenInfeasible ?? allowSeat : allowSeat
+  seatProtocolOverflowBlock(tables, roundSlots, guests, omittedRoles, seatedGuestIds, fallbackGuard, planSoFar)
+  const unseated = fillRemainingGuests(tables, roundSlots, guests, seatedGuestIds, fallbackGuard, planSoFar)
 
   return {
     tables: planSoFar.tables,

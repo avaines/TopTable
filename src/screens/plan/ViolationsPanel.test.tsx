@@ -288,12 +288,10 @@ describe('ViolationsPanel — "Rules applied" (TT-53), after the footer', () => 
     for (const rule of REGISTERED_RULES) {
       expect(text).toContain(rule.description)
     }
-    // Both groups present before comparing positions: indexOf returns -1 for a missing needle,
-    // which is less than any real index, so the bare comparison passed even if the Hard heading
-    // vanished entirely.
-    expect(text).toContain('Hard')
-    expect(text).toContain('Soft')
-    expect(text.indexOf('Hard')).toBeLessThan(text.indexOf('Soft'))
+    const expectedHeadings = ['Rules applied']
+    if (REGISTERED_RULES.some((rule) => rule.severity === 'hard')) expectedHeadings.push('Hard')
+    if (REGISTERED_RULES.some((rule) => rule.severity === 'soft')) expectedHeadings.push('Soft')
+    expect(screen.getAllByRole('heading').map((heading) => heading.textContent)).toEqual(['Violations', ...expectedHeadings])
   })
 
   it('carries no data-severity attribute of its own — only violation entries do', () => {
