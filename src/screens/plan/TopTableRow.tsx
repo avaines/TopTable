@@ -4,6 +4,7 @@ import { chairLabel } from './chairNavigation'
 import { TOP_ROW, topRowChairRadius, topRowChairsVisibleAt, topRowPositions } from './ringGeometry'
 import chairStyles from './TableRing.module.css'
 import styles from './TopTableRow.module.css'
+import type { ChairMoveProps } from './chairAddress'
 
 type TopTableRowProps = {
   seats: number
@@ -28,6 +29,8 @@ type TopTableRowProps = {
   onSeatClick: () => void
   summaryGuestId: string | null
   summaryId?: string
+  tableId: string
+  chairMove?: ChairMoveProps
 }
 
 /**
@@ -80,6 +83,8 @@ export function TopTableRow({
   onSeatClick,
   summaryGuestId,
   summaryId,
+  tableId,
+  chairMove,
 }: TopTableRowProps) {
   // The top table never scales the way a round table does (fitFloorplan only sizes round
   // tables) — TOP_ROW.viewBoxWidth is this row's one true rendered width, not merely its
@@ -99,13 +104,15 @@ export function TopTableRow({
         const guestId = seatGuestIds[chair.seatIndex] ?? null
         const guest = guestsBySeat[chair.seatIndex] ?? null
         return (
+          <g key={chair.seatIndex}>
           <circle
-            key={chair.seatIndex}
             className={guestId !== null ? chairStyles.chairOccupied : chairStyles.chairEmpty}
             cx={chair.cx}
             cy={chair.cy}
             r={radius}
             data-seat-index={chair.seatIndex}
+            data-table-id={tableId}
+            data-move={chairMove?.marks[chair.seatIndex]}
             data-guest-id={guestId ?? undefined}
             role="img"
             aria-label={chairLabel(chair.seatIndex, guest)}
@@ -118,6 +125,8 @@ export function TopTableRow({
             onMouseLeave={() => onSeatHoverEnd(chair.seatIndex)}
             onClick={onSeatClick}
           />
+          {chairMove?.marks[chair.seatIndex] === 'refused' && <line className={chairStyles.moveStrike} x1={chair.cx - radius} y1={chair.cy + radius} x2={chair.cx + radius} y2={chair.cy - radius} aria-hidden="true" />}
+          </g>
         )
       })}
     </svg>

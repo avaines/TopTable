@@ -2,6 +2,13 @@ import type { RuleReport } from '../../domain/rules/engine'
 import { isPublishable } from '../../domain/rules/engine'
 import type { SeatingPlan } from '../../domain/seating'
 import type { Violation } from '../../domain/rules/contract'
+import { movePlanSeat } from '../../domain/movePlanSeat'
+import type { SeatMove } from '../../domain/pins'
+import { tablesInRoom, type TableSlot } from '../../domain/seating'
+import type { Guest, Pin, RoomConfig } from '../../domain/types'
+import { allocate } from '../../domain/allocate'
+import { seatPins } from '../../domain/seating'
+import { evaluateRegistered } from '../../domain/rules/registry'
 
 export type ViolationChanges = { breaks: readonly Violation[]; clears: readonly Violation[] }
 
@@ -36,3 +43,34 @@ export function reseatedGuestIds(before: SeatingPlan, after: SeatingPlan, exclud
 }
 
 export function isMovePublishable(report: RuleReport): boolean { return isPublishable(report) }
+
+export type MovePreview = {
+  guest: Guest
+  from: SeatMove['from']
+  to: SeatMove['to'] | null
+  displacedGuest: Guest | null
+  reseatedCount: number
+  breaks: readonly Violation[]
+  clears: readonly Violation[]
+  publishable: boolean
+  slots: readonly TableSlot[]
+  status: 'move' | 'home' | 'nowhere' | 'refused'
+}
+
+export function derivePlan(room: RoomConfig, guests: Guest[], pins: Pin[], allocated: boolean, guard?: Parameters<typeof allocate>[3]): SeatingPlan {
+  return allocated ? allocate(room, guests, pins, guard) : seatPins(room, guests, pins)
+}
+
+export function buildMovePreview(plan: SeatingPlan, guests: Guest[], move: SeatMove, beforeReport: RuleReport, room: RoomConfig): MovePreview {
+  const guest = guests.find((candidate) => candidate.id === move.guestId) ?? { id: move.guestId, name: move.guestId } as Guest
+  const displacedGuest = move.displacedGuestId ? guests.find((candidate) => candidate.id === move.displacedGuestId) ?? null : null
+  const after = movePlanSeat(plan, move)
+  const afterReport = evaluateRegistered(after)
+  return {
+    guest, from: move.from, to: move.to, displacedGuest,
+    reseatedCount: reseatedGuestIds(plan, after, [move.guestId, ...(move.displacedGuestId ? [move.displacedGuestId] : [])]).length,
+    ...violationChanges(beforeReport, afterReport),
+    publishable: isPublishable(afterReport), slots: tablesInRoom(room),
+    status: 'move',
+  }
+}

@@ -8,6 +8,7 @@ import { initialSeatIndex, nextSeatIndex } from './chairNavigation'
 import { TableRing, TableRingSeats } from './TableRing'
 import { TopTableRow } from './TopTableRow'
 import styles from './PlanTable.module.css'
+import type { ChairMoveProps } from './chairAddress'
 
 type PlanTableProps = {
   slot: TableSlot
@@ -39,6 +40,7 @@ type PlanTableProps = {
   onGuestHoverEnd?: (guestId: string) => void
   onGuestFocus?: (guestId: string, element: Element) => void
   onGuestBlur?: (guestId: string) => void
+  chairMove?: ChairMoveProps
 }
 
 /**
@@ -140,6 +142,7 @@ export function PlanTable({
   onGuestHoverEnd,
   onGuestFocus,
   onGuestBlur,
+  chairMove,
 }: PlanTableProps) {
   const occupancy = occupancyOf(occupants.guests.length, slot.capacity)
   const isPinned = occupants.pinnedCount > 0
@@ -257,6 +260,8 @@ export function PlanTable({
           onSeatClick={handleChairActivate}
           summaryGuestId={summaryGuestId}
           summaryId={summaryId}
+          tableId={slot.id}
+          chairMove={chairMove}
         />
       )}
       {slot.kind === 'round' && <TableRing seats={slot.capacity} pinned={isPinned} tableSize={tableSize} />}
@@ -291,6 +296,8 @@ export function PlanTable({
           onSeatClick={handleChairActivate}
           summaryGuestId={summaryGuestId}
           summaryId={summaryId}
+          tableId={slot.id}
+          chairMove={chairMove}
         />
       )}
     </li>

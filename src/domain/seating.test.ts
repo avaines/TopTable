@@ -61,6 +61,82 @@ describe('tablesInRoom — table count is derived from config', () => {
   })
 })
 
+describe('TT-23 exact seat pin boundaries', () => {
+  it('reserves an exact seat before a preceding table-only pin takes the first free seat', () => {
+    const room = { roundTables: 1, seatsEach: 2, topTableSeats: 0 }
+    const plan = seatPins(room, [makeGuest('a'), makeGuest('b')], [
+      { guestId: 'a', tableId: 'round-1' },
+      { guestId: 'b', tableId: 'round-1', seatIndex: 0 },
+    ])
+    expect(plan.tables[0]?.seats.map((seat) => seat?.guest.id ?? null)).toEqual(['b', 'a'])
+  })
+
+  it('does not invent a seat from a duplicate or invalid later pin after a valid exact pin', () => {
+    const room = { roundTables: 2, seatsEach: 2, topTableSeats: 0 }
+    const plan = seatPins(room, [makeGuest('g')], [
+      { guestId: 'g', tableId: 'round-1', seatIndex: 1 },
+      { guestId: 'g', tableId: 'round-2' },
+      { guestId: 'g', tableId: 'round-2', seatIndex: -1 },
+    ])
+    expect(plan.tables[0]?.seats.every((seat) => seat === null)).toBe(true)
+    expect(plan.tables[1]?.seats[0]?.guest.id).toBe('g')
+  })
+
+  it('keeps a third exact pin and sends only the colliding loser to overflow', () => {
+    const room = { roundTables: 1, seatsEach: 2, topTableSeats: 0 }
+    const guests = [makeGuest('a'), makeGuest('b'), makeGuest('c')]
+    const plan = seatPins(room, guests, [
+      { guestId: 'a', tableId: 'round-1', seatIndex: 0 },
+      { guestId: 'b', tableId: 'round-1', seatIndex: 0 },
+      { guestId: 'c', tableId: 'round-1', seatIndex: 1 },
+    ])
+    expect(plan.tables[0]?.seats.map((seat) => seat?.guest.id ?? null)).toEqual(['a', 'c'])
+    expect(plan.tables[0]?.overflow.map((seat) => seat.guest.id)).toEqual(['b'])
+  })
+
+  it('honours a valid exact round-table seat before table pins', () => {
+    const guests = [makeGuest('exact'), makeGuest('table')]
+    const plan = seatPins({ roundTables: 1, seatsEach: 3, topTableSeats: 0 }, guests, [
+      { guestId: 'table', tableId: 'round-1' },
+      { guestId: 'exact', tableId: 'round-1', seatIndex: 2 },
+    ])
+    expect(plan.tables[0]?.seats.map((seat) => seat?.guest.id ?? null)).toEqual(['table', null, 'exact'])
+    expect(plan.tables[0]?.seats[2]?.pinned).toBe(true)
+  })
+
+  it('resolves duplicate exact seat pins deterministically by guest order and keeps the loser', () => {
+    const guests = [makeGuest('first'), makeGuest('second')]
+    const room = { roundTables: 1, seatsEach: 1, topTableSeats: 0 }
+    const pins = [{ guestId: 'first', tableId: 'round-1', seatIndex: 0 }, { guestId: 'second', tableId: 'round-1', seatIndex: 0 }]
+    const forward = seatPins(room, guests, pins)
+    const reversed = seatPins(room, guests, [...pins].reverse())
+    expect(forward.tables[0]?.seats[0]?.guest.id).toBe('first')
+    expect(forward.tables[0]?.overflow.map((seat) => seat.guest.id)).toEqual(['second'])
+    expect(reversed).toEqual(forward)
+  })
+
+  it('ignores a later stale table pin and retains the earlier valid exact pin', () => {
+    const room = { roundTables: 1, seatsEach: 2, topTableSeats: 0 }
+    const plan = seatPins(room, [makeGuest('g')], [
+      { guestId: 'g', tableId: 'round-1', seatIndex: 1 },
+      { guestId: 'g', tableId: 'round-9', seatIndex: 0 },
+    ])
+    expect(plan.tables[0]?.seats[1]?.guest.id).toBe('g')
+  })
+
+  it.each([-1, 1.5, 99])('treats invalid seat index %s as a legacy table pin', (seatIndex) => {
+    const plan = seatPins({ roundTables: 1, seatsEach: 2, topTableSeats: 0 }, [makeGuest('g')], [{ guestId: 'g', tableId: 'round-1', seatIndex }])
+    expect(plan.tables[0]?.seats[0]?.guest.id).toBe('g')
+    expect(plan.tables[0]?.seats[0]?.pinned).toBe(true)
+  })
+
+  it('ignores exact indices on the top table and preserves protocol table semantics', () => {
+    const plan = seatPins({ roundTables: 1, seatsEach: 2, topTableSeats: 2 }, [makeGuest('g')], [{ guestId: 'g', tableId: 'top', seatIndex: 0 }])
+    expect(plan.tables.find((table) => table.id === 'top')?.seats[0]?.guest.id).toBe('g')
+    expect(plan.tables.find((table) => table.id === 'top')?.seats[0]?.pinned).toBe(true)
+  })
+})
+
 describe('tablesInRoom — the top table first, round tables numbered in order', () => {
   it('puts the top table first, then every round table numbered 1..N with a stable id and label', () => {
     const room: RoomConfig = { roundTables: 3, seatsEach: 8, topTableSeats: 6 }

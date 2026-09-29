@@ -28,6 +28,9 @@ import { NO_FILTERS, filterUnseated } from './unseatedFilter'
 import type { UnseatedFilters } from './unseatedFilter'
 import { GuestHoverCard } from './GuestHoverCard'
 import { guestSummaryFields } from './guestSummary'
+import { useSeatMove } from './useSeatMove'
+import { MovePreviewPanel } from './MovePreviewPanel'
+import { LastMoveNotice } from './LastMoveNotice'
 import styles from './PlanScreen.module.css'
 import type { PlanSnapshot } from '../../App'
 
@@ -181,6 +184,10 @@ export function PlanScreen({ allocated, setAllocated, planSnapshot = null, setPl
   // into the render-phase correction above: that would be a third setState per render for no
   // behavioural gain.
   const selectedTable = plan.tables.find((table) => table.id === selectedId) ?? null
+  const floorplanAreaRef = useRef<HTMLDivElement>(null)
+  const seatMove = useSeatMove({ room, guests, pins, allocated, plan, report, seatGuard, placing: selectedGuest !== null, announce: setAnnouncement, onPickUp: () => { setHoveredSummary(null); setFocusedSummary(null) }, focusFallback: () => railHeadingRef.current?.focus(), setPlanSnapshot })
+  const cancelHoldRef = useRef(seatMove.cancelHold)
+  useEffect(() => { cancelHoldRef.current = seatMove.cancelHold }, [seatMove.cancelHold])
 
   // Read inside the Escape handler below via refs, not effect dependencies — see that handler's
   // own comment for why. Synced in their own small effects rather than assigned during render:
@@ -218,6 +225,7 @@ export function PlanScreen({ allocated, setAllocated, planSnapshot = null, setPl
   useEffect(() => {
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key !== 'Escape') return
+      if (cancelHoldRef.current()) return
 
       const currentSelectedGuestId = selectedGuestIdRef.current
       const currentSummary = summaryRef.current
@@ -262,6 +270,7 @@ export function PlanScreen({ allocated, setAllocated, planSnapshot = null, setPl
   // keeps showing its own guest once the mouse moves off a *different* one it had drifted onto —
   // `summary`'s own derivation (hover falling back to focus) is what gives focus that priority.
   function handleGuestHover(guestId: string, element: Element) {
+    if (seatMove.holding) return
     setHoveredSummary({ guestId, rect: element.getBoundingClientRect() })
   }
 
@@ -277,6 +286,7 @@ export function PlanScreen({ allocated, setAllocated, planSnapshot = null, setPl
   // mouse is still actively showing, and so hovering a second guest and moving off it falls back
   // to whichever guest is still genuinely focused rather than to nothing.
   function handleGuestFocus(guestId: string, element: Element) {
+    if (seatMove.holding) return
     setFocusedSummary({ guestId, rect: element.getBoundingClientRect() })
   }
 
@@ -320,6 +330,7 @@ export function PlanScreen({ allocated, setAllocated, planSnapshot = null, setPl
 
     const tableLabel = slots.find((slot) => slot.id === tableId)?.label ?? tableId
     const guestName = selectedGuest.name
+    seatMove.invalidate()
     // flushSync, not an effect: the row being focused next unmounts as part of this same
     // update (the placed guest leaves the rail), so focus has to move only once the DOM
     // reflects that — synchronously, or the moment in between would drop focus to <body>.
@@ -340,6 +351,7 @@ export function PlanScreen({ allocated, setAllocated, planSnapshot = null, setPl
     const guest = guests.find((candidate) => candidate.id === guestId)
     const tableId = pinnedTableFor(pins, guestId)
     const tableLabel = tableId === null ? null : slots.find((slot) => slot.id === tableId)?.label
+    seatMove.invalidate()
     flushSync(() => {
       unpinGuest(guestId)
       setAnnouncement(`${guest?.name ?? 'Guest'} released from ${tableLabel ?? 'their table'}`)
@@ -366,6 +378,8 @@ export function PlanScreen({ allocated, setAllocated, planSnapshot = null, setPl
     const justAllocated = allocate(room, guests, pins, { allowSeat: seatGuard })
     const seatedCount = guests.length - justAllocated.unseated.length
     setAllocated(true)
+    seatMove.invalidate()
+    setPlanSnapshot?.(null)
     setSelectedGuestId(null)
     setAnnouncement(`Allocated. ${seatedCount} seated, ${justAllocated.unseated.length} unseated.`)
   }
@@ -379,6 +393,8 @@ export function PlanScreen({ allocated, setAllocated, planSnapshot = null, setPl
   function handleClearAllocation() {
     const cleared = seatPins(room, guests, pins)
     setAllocated(false)
+    seatMove.invalidate()
+    setPlanSnapshot?.(null)
     setSelectedGuestId(null)
     setAnnouncement(
       `Allocation cleared. ${guests.length - cleared.unseated.length} seated, ${cleared.unseated.length} unseated.`,
@@ -388,6 +404,8 @@ export function PlanScreen({ allocated, setAllocated, planSnapshot = null, setPl
   function handleClearEverything() {
     const cleared = seatPins(room, guests, [])
     setAllocated(false)
+    seatMove.invalidate()
+    setPlanSnapshot?.(null)
     clearPins()
     setSelectedGuestId(null)
     setAnnouncement(
@@ -435,7 +453,7 @@ export function PlanScreen({ allocated, setAllocated, planSnapshot = null, setPl
                 onClearEverything={handleClearEverything}
               />
             </div>
-            <div className={styles.floorplanArea}>
+            <div className={styles.floorplanArea} ref={floorplanAreaRef} data-moving={seatMove.holding ? 'true' : undefined} {...seatMove.areaHandlers}>
               <FloorplanGrid
                 room={room}
                 seating={seating}
@@ -449,6 +467,7 @@ export function PlanScreen({ allocated, setAllocated, planSnapshot = null, setPl
                 onGuestHoverEnd={handleGuestHoverEnd}
                 onGuestFocus={handleGuestFocus}
                 onGuestBlur={handleGuestBlur}
+                chairMoveFor={seatMove.chairMoveFor}
               />
             </div>
             <div ref={railRef}>
@@ -471,6 +490,7 @@ export function PlanScreen({ allocated, setAllocated, planSnapshot = null, setPl
             </div>
           </div>
           <div className={styles.violations}>
+            {seatMove.preview ? <MovePreviewPanel preview={seatMove.preview} /> : seatMove.lastMove ? <LastMoveNotice move={seatMove.lastMove} onUndo={seatMove.undoLastMove} /> : null}
             {(() => {
               // Each non-violations case guards on its own data, falling back to the violations
               // panel. For `breakdown` and `pinned`, that fallback is defensive rather than
@@ -521,6 +541,7 @@ export function PlanScreen({ allocated, setAllocated, planSnapshot = null, setPl
           <p role="status" className="tt-visually-hidden">
             {announcement}
           </p>
+          <p id={seatMove.hintId} className="tt-visually-hidden">Press Space to move this guest.</p>
           {summary &&
             (() => {
               const summaryGuest = guests.find((guest) => guest.id === summary.guestId) ?? null

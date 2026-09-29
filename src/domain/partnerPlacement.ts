@@ -3,7 +3,7 @@ import type { Guest, ProtocolRole } from './types'
 import type { Seat, SeatedTable, SeatingPlan } from './seating'
 import { TOP_TABLE_ID } from './seating'
 
-type Unit = { segments: Guest[][]; tableId?: string }
+type Unit = { segments: Guest[][]; tableId?: string; adjacentTo?: number }
 type MutableTable = Omit<SeatedTable, 'seats'> & { seats: (Seat | null)[] }
 
 function members(unit: Unit): Guest[] {
@@ -29,6 +29,12 @@ export function seatPartners(
   ))
   const remaining = guests.filter((guest) => !alreadySeated.has(guest.id))
   const byId = new Map(remaining.map((guest) => [guest.id, guest]))
+  const initialTableByGuest = new Map(initial.flatMap((table) =>
+    [...table.seats, ...table.overflow].flatMap((seat) => seat ? [[seat.guest.id, table.id] as const] : []),
+  ))
+  const initialSeatByGuest = new Map(initial.flatMap((table) => table.seats.flatMap((seat, index) =>
+    seat ? [[seat.guest.id, { tableId: table.id, seatIndex: index, kind: table.kind }] as const] : [],
+  )))
   const partners = new Map<string, string>()
   for (const guest of remaining) {
     if (!guest.partnerOf || guest.partnerOf === guest.id || !byId.has(guest.partnerOf)) continue
@@ -38,7 +44,8 @@ export function seatPartners(
     partners.set(guest.partnerOf, guest.id)
   }
   const roundTables = initial.filter((table) => table.kind === 'round')
-  const target = Math.min(remaining.length, roundTables.reduce((sum, table) => sum + table.capacity, 0))
+  const freeCapacity = roundTables.reduce((sum, table) => sum + table.capacity - table.seats.filter((seat) => seat !== null).length, 0)
+  const target = Math.min(remaining.length, freeCapacity)
   const short = target < remaining.length
 
   const used = new Set<string>()
@@ -49,7 +56,13 @@ export function seatPartners(
     const partner = partnerId ? byId.get(partnerId) : undefined
     const segment = partner ? [guest, partner] : [guest]
     segment.forEach((member) => used.add(member.id))
-    units.push({ segments: [segment] })
+    const fixedPartnerId = guest.partnerOf
+    const fixedPartnerTableId = fixedPartnerId ? initialTableByGuest.get(fixedPartnerId) : undefined
+    const fixedPartnerTable = fixedPartnerTableId && initial.find((table) => table.id === fixedPartnerTableId)?.kind === 'round'
+      ? fixedPartnerTableId
+      : undefined
+    const fixedPartnerSeat = fixedPartnerId ? initialSeatByGuest.get(fixedPartnerId) : undefined
+    units.push({ segments: [segment], tableId: fixedPartnerTable, adjacentTo: fixedPartnerSeat?.kind === 'round' ? fixedPartnerSeat.seatIndex : undefined })
   }
 
   // Pinned role holders have already chosen their destination; KB-4's overflow block contains
@@ -70,7 +83,7 @@ export function seatPartners(
       return tableId && tableId !== TOP_TABLE_ID ? [tableId] : []
     }))
     if (restrictions.size > 1) return null
-    unit.tableId = restrictions.values().next().value
+    if (restrictions.size > 0) unit.tableId = restrictions.values().next().value
   }
   const forcedCounts = new Map<string, number>()
   for (const unit of units) {
@@ -96,7 +109,64 @@ export function seatPartners(
 
   const tables: MutableTable[] = initial.map((table) => ({ ...table, seats: [...table.seats] }))
   const rounds = tables.filter((table) => table.kind === 'round')
-  const fills = rounds.map(() => 0)
+  const fills = rounds.map((table) => table.seats.filter((seat) => seat !== null).length)
+
+  function positionsFor(table: MutableTable, start: number, length: number): number[] {
+    if (length === 2 && start === table.capacity - 1) return [start, 0]
+    return Array.from({ length }, (_, offset) => start + offset)
+  }
+
+  function startsFor(table: MutableTable, length: number, adjacentTo?: number): number[] {
+    const starts: number[] = []
+    const prefix = table.seats.findIndex((seat) => seat === null)
+    if (prefix >= 0 && table.seats.slice(prefix + 1).every((seat) => seat === null)) {
+      const positions = positionsFor(table, prefix, length)
+      const adjacent = adjacentTo === undefined || positions.some((position) => position === (adjacentTo + 1) % table.capacity || position === (adjacentTo + table.capacity - 1) % table.capacity)
+      if (positions.length === length && positions.every((position) => table.seats[position] === null) && adjacent && (length <= 2 || prefix + length <= table.capacity)) return [prefix]
+    }
+    for (let start = 0; start < table.capacity; start++) {
+      const positions = positionsFor(table, start, length)
+      if (new Set(positions).size !== positions.length || positions.some((position) => table.seats[position] !== null)) continue
+      if (length > 2 && start + length > table.capacity) continue
+      if (adjacentTo !== undefined && !positions.some((position) => position === (adjacentTo + 1) % table.capacity || position === (adjacentTo + table.capacity - 1) % table.capacity)) continue
+      starts.push(start)
+    }
+    return starts
+  }
+
+  type SegmentAssignment = { guest: Guest; position: number; pinned: boolean }
+  function findSegmentAssignment(unit: Unit, table: MutableTable): SegmentAssignment[] | null {
+    const trialTables = tables.map((candidate) => ({ ...candidate, seats: [...candidate.seats] }))
+    const trialTable = trialTables.find((candidate) => candidate.id === table.id)
+    if (!trialTable) return null
+    const assignments: SegmentAssignment[] = []
+    const place = (segmentIndex: number): boolean => {
+      const segment = unit.segments[segmentIndex]
+      if (!segment) return true
+      if (segmentIndex === unit.segments.length) return true
+      for (const start of startsFor(trialTable, segment.length)) {
+        const positions = positionsFor(trialTable, start, segment.length)
+        let accepted = true
+        for (let offset = 0; offset < segment.length; offset++) {
+          const guest = segment[offset]!
+          const position = positions[offset]!
+          const pinned = honoured.get(guest.id) === table.id
+          if (!pinned && !allowSeat({ plan: { tables: trialTables }, tableId: table.id, seatIndex: position, guest })) {
+            accepted = false
+            break
+          }
+          trialTable.seats[position] = { guest, pinned }
+          assignments.push({ guest, position, pinned })
+        }
+        if (accepted && place(segmentIndex + 1)) return true
+        for (const assignment of assignments.splice(assignments.length - segment.length)) {
+          trialTable.seats[assignment.position] = null
+        }
+      }
+      return false
+    }
+    return place(0) ? assignments : null
+  }
   const suffixGuests = new Array<number>(units.length + 1).fill(0)
   const suffixPairs = new Array<number>(units.length + 1).fill(0)
   for (let i = units.length - 1; i >= 0; i--) {
@@ -136,13 +206,16 @@ export function seatPartners(
 
   function hasCandidatePlacement(index: number): boolean {
     const unit = units[index]!
+    if (unit.segments.length > 1) {
+      return rounds.some((table) => (!unit.tableId || unit.tableId === table.id) && findSegmentAssignment(unit, table) !== null)
+    }
     for (const occupants of variants[index]!) {
       if (occupants.length === 0) return true
       for (let tableIndex = 0; tableIndex < rounds.length; tableIndex++) {
         const table = rounds[tableIndex]!
         if (unit.tableId && unit.tableId !== table.id) continue
-        for (let start = 0; start + occupants.length <= table.capacity; start++) {
-          if (occupants.some((_, offset) => table.seats[start + offset] !== null)) continue
+        for (const start of startsFor(table, occupants.length, unit.adjacentTo)) {
+          const positions = positionsFor(table, start, occupants.length)
           const trialTables = tables.map((candidate) => ({ ...candidate, seats: [...candidate.seats] }))
           const trialTable = trialTables.find((candidate) => candidate.id === table.id)
           if (!trialTable) continue
@@ -151,12 +224,12 @@ export function seatPartners(
             const guest = occupants[offset]!
             const pinned = honoured.get(guest.id) === table.id
             if (!pinned && !allowSeat({
-              plan: { tables: trialTables }, tableId: table.id, seatIndex: start + offset, guest,
+              plan: { tables: trialTables }, tableId: table.id, seatIndex: positions[offset]!, guest,
             })) {
               accepted = false
               break
             }
-            trialTable.seats[start + offset] = { guest, pinned }
+            trialTable.seats[positions[offset]!] = { guest, pinned }
           }
           if (accepted) return true
         }
@@ -201,6 +274,20 @@ export function seatPartners(
     if (seated + possibleGuests < target) return false
     if (!short && suffixGuests[index]! > free.reduce((sum, count) => sum + count, 0)) return false
     const unit = units[index]!
+    if (unit.segments.length > 1) {
+      for (let tableIndex = 0; tableIndex < rounds.length; tableIndex++) {
+        const table = rounds[tableIndex]!
+        if (unit.tableId && unit.tableId !== table.id) continue
+        const assignments = findSegmentAssignment(unit, table)
+        if (!assignments) continue
+        for (const assignment of assignments) table.seats[assignment.position] = { guest: assignment.guest, pinned: assignment.pinned }
+        fills[tableIndex] = fills[tableIndex]! + assignments.length
+        if (search(index + 1, seated + assignments.length)) return true
+        fills[tableIndex] = fills[tableIndex]! - assignments.length
+        for (const assignment of assignments) table.seats[assignment.position] = null
+      }
+      return false
+    }
     for (const occupants of variants[index]!) {
       if (seated + occupants.length > target) continue
       if (occupants.length === 0) {
@@ -210,25 +297,27 @@ export function seatPartners(
       for (let tableIndex = 0; tableIndex < rounds.length; tableIndex++) {
         const table = rounds[tableIndex]!
         if (unit.tableId && unit.tableId !== table.id) continue
-        const start = fills[tableIndex]!
         // Reserve later mandatory pins before trying an optional partner at this table.
         if (occupants.length + suffixRequired[index + 1]![tableIndex]! > free[tableIndex]!) continue
-        let accepted = true
-        for (let offset = 0; offset < occupants.length; offset++) {
-          const guest = occupants[offset]!
-          const pinned = honoured.get(guest.id) === table.id
-          if (!pinned && !allowSeat({ plan: { tables }, tableId: table.id, seatIndex: start + offset, guest })) {
-            accepted = false
-            break
+        for (const start of startsFor(table, occupants.length, unit.adjacentTo)) {
+          const positions = positionsFor(table, start, occupants.length)
+          let accepted = true
+          for (let offset = 0; offset < occupants.length; offset++) {
+            const guest = occupants[offset]!
+            const pinned = honoured.get(guest.id) === table.id
+            if (!pinned && !allowSeat({ plan: { tables }, tableId: table.id, seatIndex: positions[offset]!, guest })) {
+              accepted = false
+              break
+            }
+            table.seats[positions[offset]!] = { guest, pinned }
           }
-          table.seats[start + offset] = { guest, pinned }
+          if (accepted) {
+            fills[tableIndex] = fills[tableIndex]! + occupants.length
+            if (search(index + 1, seated + occupants.length)) return true
+            fills[tableIndex] = fills[tableIndex]! - occupants.length
+          }
+          for (const position of positions) table.seats[position] = null
         }
-        if (accepted) {
-          fills[tableIndex] = start + occupants.length
-          if (search(index + 1, seated + occupants.length)) return true
-          fills[tableIndex] = start
-        }
-        for (let offset = 0; offset < occupants.length; offset++) table.seats[start + offset] = null
       }
     }
     return false

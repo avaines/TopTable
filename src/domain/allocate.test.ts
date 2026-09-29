@@ -159,6 +159,72 @@ describe('allocate — the shape of a plan', () => {
   })
 })
 
+describe('TT-23 exact seats in allocation', () => {
+  it('honours an exact round-table pin even when the guard refuses every other seat', () => {
+    const guests = [makeGuest('a'), makeGuest('b')]
+    const guard: SeatGuard = ({ guest, tableId, seatIndex }) => guest.id === 'a' && tableId === 'round-1' && seatIndex === 1
+    const plan = allocate({ roundTables: 1, seatsEach: 2, topTableSeats: 0 }, guests, [
+      { guestId: 'a', tableId: 'round-1', seatIndex: 1 },
+    ], { allowSeat: guard })
+    expect(plan.tables[0]?.seats[1]?.guest.id).toBe('a')
+    expect(plan.tables[0]?.seats[1]?.pinned).toBe(true)
+    expect(plan.unseated.map((guest) => guest.id)).toEqual(['b'])
+  })
+
+  it('places an unpinned partner beside a fixed guest, including the round-table wrap edge', () => {
+    const a = makeGuest('a', { partnerOf: 'b' })
+    const b = makeGuest('b', { partnerOf: 'a' })
+    const guard = registeredSeatGuard()
+    const plan = allocate({ roundTables: 1, seatsEach: 4, topTableSeats: 0 }, [a, b], [
+      { guestId: 'a', tableId: 'round-1', seatIndex: 3 },
+    ], { allowSeat: guard })
+    expect(seatOf(plan, 'a')?.seatIndex).toBe(3)
+    expect(seatOf(plan, 'b')?.seatIndex).toBe(0)
+    expect(plan.unseated).toEqual([])
+  })
+
+  it('does not require a partner adjacent when one partner is fixed at the top table', () => {
+    const a = makeGuest('a', { role: 'groom', partnerOf: 'b' })
+    const b = makeGuest('b', { partnerOf: 'a' })
+    const plan = allocate({ roundTables: 1, seatsEach: 1, topTableSeats: 1 }, [a, b], [
+      { guestId: 'a', tableId: 'top' },
+    ], { allowSeat: registeredSeatGuard() })
+    expect(seatOf(plan, 'a')?.table.id).toBe('top')
+    expect(seatOf(plan, 'b')?.table.id).toBe('round-1')
+    expect(plan.unseated).toEqual([])
+  })
+
+  it('uses the last valid table pin without borrowing an older exact seat', () => {
+    const plan = allocate({ roundTables: 2, seatsEach: 2, topTableSeats: 0 }, [makeGuest('g')], [
+      { guestId: 'g', tableId: 'round-1', seatIndex: 1 },
+      { guestId: 'g', tableId: 'round-2' },
+      { guestId: 'g', tableId: 'round-2', seatIndex: -1 },
+    ])
+    expect(seatOf(plan, 'g')?.table.id).toBe('round-2')
+    expect(seatOf(plan, 'g')?.seatIndex).toBe(0)
+  })
+
+  it('preserves a valid exact pin when a later pin names no real table', () => {
+    const plan = allocate({ roundTables: 1, seatsEach: 2, topTableSeats: 0 }, [makeGuest('g')], [
+      { guestId: 'g', tableId: 'round-1', seatIndex: 1 },
+      { guestId: 'g', tableId: 'missing' },
+    ])
+    expect(seatOf(plan, 'g')?.table.id).toBe('round-1')
+    expect(seatOf(plan, 'g')?.seatIndex).toBe(1)
+  })
+
+  it('keeps a third exact pin when two exact pins collide, with only the loser overflowing', () => {
+    const guests = [makeGuest('a'), makeGuest('b'), makeGuest('c')]
+    const plan = allocate({ roundTables: 1, seatsEach: 2, topTableSeats: 0 }, guests, [
+      { guestId: 'a', tableId: 'round-1', seatIndex: 0 },
+      { guestId: 'b', tableId: 'round-1', seatIndex: 0 },
+      { guestId: 'c', tableId: 'round-1', seatIndex: 1 },
+    ])
+    expect(plan.tables[0]?.seats.map((seat) => seat?.guest.id ?? null)).toEqual(['a', 'c'])
+    expect(plan.tables[0]?.overflow.map((seat) => seat.guest.id)).toEqual(['b'])
+  })
+})
+
 describe('allocate — the default guard allows every seat', () => {
   it('with no options, behaves exactly as AllocateOptions documents: nothing is refused by the fill', () => {
     const room: RoomConfig = { roundTables: 1, seatsEach: 2, topTableSeats: 0 }

@@ -12,7 +12,7 @@ type TopTableData = {
   room: RoomConfig       // { roundTables, seatsEach, topTableSeats }
   guests: Guest[]        // KB-3, thirteen fields
   scenario: ScenarioState // ScenarioId | 'custom' | null — which scenario is loaded, if any (TT-4)
-  pins: Pin[]             // { guestId, tableId } — a human decision, so it is stored (TT-12)
+  pins: Pin[]             // { guestId, tableId, seatIndex? } — a human decision, so it is stored (TT-12, TT-23)
 }
 ```
 
@@ -118,6 +118,12 @@ is untested code guarding data that never existed. Once there is a released vers
 real `migrate` and the honest answer changes.
 
 `partialize` writes the five data fields and never the actions.
+
+TT-23 exact-seat pins remain in the persisted `pins` field and auto-allocation honours valid
+round-table chairs before legacy table pins. A move is applied through `moveGuest`; one-step undo
+uses `restorePins` and a transient derived plan snapshot. The snapshot survives tab navigation but
+is discarded on reload, and is invalidated by leaving Plan or changing its source inputs. Only the
+human pin decisions persist; the snapshot, findings and seating remain derived.
 
 TT-13 needed no version bump: the table address it canonicalised — `'top'`, `roundTableId(n)` —
 is the same string scheme already written into every pin in storage, so every pin from before

@@ -1,4 +1,4 @@
-import type { SeatingPlan, Seat } from './seating'
+import type { SeatingPlan } from './seating'
 import type { SeatMove } from './pins'
 
 /** Apply a manual round-table move without invoking the allocator. */
@@ -12,12 +12,13 @@ export function movePlanSeat(plan: SeatingPlan, move: SeatMove): SeatingPlan {
   const mover = fromTable.seats[move.from.seatIndex]
   if (!mover || mover.guest.id !== move.guestId) return plan
   const target = toTable.seats[move.to.seatIndex]
-  if (target && move.displacedGuestId !== target.guest.id) return plan
+  if (target ? move.displacedGuestId !== target.guest.id : move.displacedGuestId !== undefined) return plan
+  if (target?.guest.id === move.guestId) return plan
   const tables = plan.tables.map((table) => {
     if (table.id !== fromTable.id && table.id !== toTable.id) return table
-    const seats = table.seats.slice() as (Seat | null)[]
-    if (table.id === fromTable.id) seats[move.from.seatIndex] = target ?? null
-    if (table.id === toTable.id) seats[move.to.seatIndex] = mover
+    const seats = table.seats.slice()
+    if (table.id === fromTable.id) seats[move.from.seatIndex] = target ? { ...target, pinned: true } : null
+    if (table.id === toTable.id) seats[move.to.seatIndex] = { ...mover, pinned: true }
     return { ...table, seats }
   })
   return { ...plan, tables }

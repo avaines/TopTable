@@ -150,8 +150,8 @@ export type EventDetails = {
  * (KB-1, "Pinning is the idea the product turns on"). `tableId` is opaque here: the domain
  * matches on `guestId` only and never interprets the address. The canonical scheme —
  * `TOP_TABLE_ID` and `roundTableId(n)` — is `src/domain/seating.ts`'s (TT-13); this type does
- * not repeat it, and does not gain a seat index, because a pin binds a guest to a table, never
- * to a seat.
+ * A pin may carry an optional zero-based `seatIndex` for an exact round-table chair; omitted or
+ * invalid indices retain legacy table-only placement semantics.
  */
 export type Pin = {
   guestId: string

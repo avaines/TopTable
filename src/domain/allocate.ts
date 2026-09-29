@@ -2,7 +2,7 @@ import { seatPartners } from './partnerPlacement'
 import type { Guest, Pin, ProtocolRole, RoomConfig } from './types'
 import { PROTOCOL_ROLES } from './types'
 import type { Seat, SeatingPlan, TableSlot } from './seating'
-import { TOP_TABLE_ID, resolveHonouredPins, tableFor, tablesInRoom, topTableSeatPlacement } from './seating'
+import { TOP_TABLE_ID, resolveHonouredPins, resolveHonouredSeats, tableFor, tablesInRoom, topTableSeatPlacement } from './seating'
 
 /**
  * The solver: seats the top table by protocol, then fills the room. In its own file,
@@ -144,6 +144,34 @@ function seatHonouredRoundPins(
     if (tableId === undefined || tableId === TOP_TABLE_ID) continue
 
     seatAtTableOrOverflow(tableFor(tables, tableId), guest, true)
+    seatedGuestIds.add(guest.id)
+  }
+}
+
+function seatExactRoundPins(
+  tables: ReadonlyMap<string, BuildingTable>,
+  guests: readonly Guest[],
+  exact: ReadonlyMap<string, { tableId: string; seatIndex: number }>,
+  seatedGuestIds: Set<string>,
+): void {
+  const claimed = new Set<string>()
+  for (const guest of guests) {
+    const address = exact.get(guest.id)
+    if (!address || seatedGuestIds.has(guest.id)) continue
+    const table = tableFor(tables, address.tableId)
+    const key = `${address.tableId}:${address.seatIndex}`
+    if (claimed.has(key) || table.seats[address.seatIndex] !== null) continue
+    table.seats[address.seatIndex] = { guest, pinned: true }
+    claimed.add(key)
+    seatedGuestIds.add(guest.id)
+  }
+  for (const guest of guests) {
+    const address = exact.get(guest.id)
+    if (!address || seatedGuestIds.has(guest.id)) continue
+    const table = tableFor(tables, address.tableId)
+    const freeIndex = table.seats.findIndex((seat) => seat === null)
+    if (freeIndex === -1) table.overflow.push({ guest, pinned: true })
+    else table.seats[freeIndex] = { guest, pinned: true }
     seatedGuestIds.add(guest.id)
   }
 }
@@ -308,6 +336,7 @@ export function allocate(room: RoomConfig, guests: Guest[], pins: Pin[], options
   const includedRoles = topSlot ? seatTopTable(tableFor(tables, topSlot.id), guests, honoured, seatedGuestIds) : []
 
   const omittedRoles = PROTOCOL_ROLES.filter((role) => !includedRoles.includes(role))
+  seatExactRoundPins(tables, guests, resolveHonouredSeats(slots, guests, pins), seatedGuestIds)
   const constrainedPlan = seatPartners(planSoFar.tables, guests, honoured, omittedRoles, allowSeat)
   if (constrainedPlan !== null) return constrainedPlan
 
